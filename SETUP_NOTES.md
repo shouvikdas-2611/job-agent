@@ -269,3 +269,36 @@ job-agent/
 RENDER_EXTERNAL_URL = https://job-agent-75x8.onrender.com
 ```
 (Replace with your actual Render URL)
+
+---
+
+## 🔧 Email Fix — Brevo SMTP (Session 3)
+
+### Problem
+Gmail SMTP (port 587) still gave "Connection timeout" on Render even after switching from port 465.
+
+### Root Cause
+Render's free tier uses **shared IP addresses** — thousands of apps run from the same IP pool. Many of those apps sent spam, so Gmail blocks TCP connections from these IPs entirely (before authentication even happens).
+
+### Fix
+Switched to **Brevo SMTP relay** (formerly Sendinblue):
+- Brevo routes outgoing email through their own trusted IP pool
+- Gmail whitelists Brevo's IPs
+- Your Gmail address still appears as the sender — only the routing path changes
+- Free: 300 emails/day, no card required
+
+### Setup steps for Brevo
+1. Sign up at **brevo.com**
+2. Login → click your name (top right) → **SMTP & API**
+3. Click **"Generate a new SMTP key"** → copy the `xsmtpib-...` key
+
+### New env vars needed (add to Render dashboard)
+```
+BREVO_SMTP_LOGIN = your-brevo-account@email.com   ← the email you signed up with
+BREVO_SMTP_KEY   = xsmtpib-your-key-here           ← from Brevo SMTP & API page
+```
+
+### How the code works now
+- If `BREVO_SMTP_KEY` is set → uses Brevo (production/Render)
+- If `BREVO_SMTP_KEY` is blank → falls back to Gmail direct SMTP (local dev)
+- `EMAIL_USER` still used as the FROM address in all emails

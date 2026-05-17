@@ -81,19 +81,35 @@ async function processSubscription(sub) {
     }
     setProgress(email, 'Ranking', `Top ${ranked.length} matches selected (🇮🇳 Acad: ${counts.india_academic}, 🇮🇳 Ind: ${counts.india_industry}, 🌍 Acad: ${counts.abroad_academic})`, 68);
 
-    // Step 4 — Extract deadlines
+    // Step 4 — Extract deadlines (non-fatal — email still sends if this fails)
+    // Small gap after scoring to avoid hitting Gemini 20 RPM rate limit
+    await new Promise(r => setTimeout(r, 10000));
     setProgress(email, 'Checking deadlines', `Verifying application deadlines for ${ranked.length} jobs...`, 72);
-    const enriched     = await extractDeadlines(ranked);
-    const expiredCount = enriched.filter(j => j.deadline_status === 'expired').length;
-    const urgentCount  = enriched.filter(j => j.deadline_status === 'urgent' || j.deadline_status === 'today').length;
-    console.log(`  → Deadlines — expired: ${expiredCount}, urgent: ${urgentCount}`);
-
-    const deadlineSummary = expiredCount > 0
-      ? `${expiredCount} posting${expiredCount > 1 ? 's have' : ' has'} passed deadline — flagged in email`
-      : urgentCount > 0
-        ? `${urgentCount} posting${urgentCount > 1 ? 's close' : ' closes'} within 7 days — flagged in email`
-        : 'All postings have valid deadlines';
-    setProgress(email, 'Checking deadlines', deadlineSummary, 85);
+    let enriched = ranked;
+    try {
+      enriched = await extractDeadlines(ranked);
+      const expiredCount = enriched.filter(j => j.deadline_status === 'expired').length;
+      const urgentCount  = enriched.filter(j => j.deadline_status === 'urgent' || j.deadline_status === 'today').length;
+      console.log(`  → Deadlines — expired: ${expiredCount}, urgent: ${urgentCount}`);
+      const deadlineSummary = expiredCount > 0
+        ? `${expiredCount} posting${expiredCount > 1 ? 's have' : ' has'} passed deadline — flagged in email`
+        : urgentCount > 0
+          ? `${urgentCount} posting${urgentCount > 1 ? 's close' : ' closes'} within 7 days — flagged in email`
+          : 'All postings have valid deadlines';
+      setProgress(email, 'Checking deadlines', deadlineSummary, 85);
+    } catch (err) {
+      // Gemini quota hit or timeout — skip deadline badges, still send email
+      console.warn(`  → ⚠️ Deadline extraction skipped (${err.message.slice(0, 80)}) — sending email without deadline info`);
+      setProgress(email, 'Checking deadlines', 'Deadline check skipped (quota limit) — sending email now', 85);
+      // Regex-based deadlines already extracted — only Gemini fallback skipped
+      // Jobs already have deadline_status from regex pass; mark rest as unknown
+      enriched = ranked.map(j => ({
+        ...j,
+        deadline_status: j.deadline_status || 'unknown',
+        deadline_label:  j.deadline_label  || 'No deadline found',
+        deadline_str:    j.deadline_str    || null
+      }));
+    }
 
     // Step 5 — Send email
     setProgress(email, 'Sending email', `Sending digest to ${email}...`, 92);

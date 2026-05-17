@@ -3,21 +3,42 @@
 
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,           // TLS via STARTTLS — port 587, works on Render
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  },
-  connectionTimeout: 30000,
-  greetingTimeout:   15000,
-  socketTimeout:     60000,
-  tls: {
-    rejectUnauthorized: false  // handles some cert issues on cloud hosts
+// Email transporter — uses Brevo SMTP relay by default (works from Render/cloud)
+// Falls back to Gmail direct SMTP for local dev if BREVO_SMTP_KEY is not set
+function createTransporter() {
+  if (process.env.BREVO_SMTP_KEY) {
+    // Brevo (formerly Sendinblue) — free 300 emails/day, works from all cloud hosts
+    return nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_SMTP_LOGIN || process.env.EMAIL_USER,
+        pass: process.env.BREVO_SMTP_KEY
+      },
+      connectionTimeout: 30000,
+      greetingTimeout:   15000,
+      socketTimeout:     60000
+    });
   }
-});
+
+  // Local dev fallback — Gmail direct SMTP (may not work from cloud hosts)
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    },
+    connectionTimeout: 30000,
+    greetingTimeout:   15000,
+    socketTimeout:     60000,
+    tls: { rejectUnauthorized: false }
+  });
+}
+
+const transporter = createTransporter();
 
 const TIER_META = {
   india_academic:  { emoji: '🎓', label: 'India — Academic & Faculty (Top Priority)',  color: '#7c3aed' },
