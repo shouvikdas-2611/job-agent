@@ -4,14 +4,19 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,           // TLS via STARTTLS — port 587, works on Render
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
   },
-  connectionTimeout: 30000,  // 30s to establish connection
-  greetingTimeout:   15000,  // 15s for server greeting
-  socketTimeout:     60000   // 60s for socket inactivity
+  connectionTimeout: 30000,
+  greetingTimeout:   15000,
+  socketTimeout:     60000,
+  tls: {
+    rejectUnauthorized: false  // handles some cert issues on cloud hosts
+  }
 });
 
 const TIER_META = {
