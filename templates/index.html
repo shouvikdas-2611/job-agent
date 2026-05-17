@@ -250,6 +250,18 @@
       </p>
     </form>
 
+    <!-- Live progress tracker -->
+    <div id="progressTracker" style="display:none;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:5px;">
+        <span id="progressStep" style="font-weight:500;">Starting...</span>
+        <span id="progressPct" style="font-weight:600;color:#7c3aed;">0%</span>
+      </div>
+      <div style="background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px;">
+        <div id="progressBar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:99px;width:0%;transition:width 0.5s ease;"></div>
+      </div>
+      <div id="progressDetail" style="font-size:12px;color:#64748b;line-height:1.5;min-height:18px;"></div>
+    </div>
+
     <!-- Success / error result -->
     <div class="result" id="signupResult">
       <div class="result-title" id="signupResultTitle"></div>
@@ -266,6 +278,16 @@
     </div>
     <div class="send-now-result" id="sendNowResult"></div>
     <p class="note">Searches all sources and emails your latest matches immediately — no waiting for the next scheduled digest.</p>
+
+    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0;">
+      <div style="font-size:13px;font-weight:500;color:#475569;margin-bottom:6px;">🔄 Seen all jobs already? Reset history</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="email" id="resetEmail" placeholder="your@email.com" style="flex:1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;">
+        <button onclick="resetSent()" style="padding:8px 14px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Clear history</button>
+      </div>
+      <div id="resetResult" style="font-size:12px;margin-top:6px;display:none;padding:6px 10px;border-radius:6px;"></div>
+      <p class="note" style="margin-top:5px;">Clears the "already sent" log — next digest shows all matching jobs fresh. Use after testing or for a full re-scan.</p>
+    </div>
   </div>
 
 </div>
@@ -285,6 +307,46 @@ fileDrop.addEventListener('drop', e => {
   e.preventDefault(); fileDrop.classList.remove('over');
   if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; fileName.textContent = e.dataTransfer.files[0].name; }
 });
+
+// ── Progress polling ─────────────────────────────────────────────────────────
+let _pollInterval = null;
+
+function startProgressPolling(email) {
+  const tracker  = document.getElementById('progressTracker');
+  const stepEl   = document.getElementById('progressStep');
+  const pctEl    = document.getElementById('progressPct');
+  const barEl    = document.getElementById('progressBar');
+  const detailEl = document.getElementById('progressDetail');
+
+  tracker.style.display = 'block';
+  if (_pollInterval) clearInterval(_pollInterval);
+
+  _pollInterval = setInterval(async () => {
+    try {
+      const res  = await fetch(`/api/progress/${encodeURIComponent(email)}`);
+      const data = await res.json();
+
+      if (!data.active) return; // not started yet or cleared
+
+      stepEl.textContent   = data.step   || '';
+      pctEl.textContent    = data.pct + '%';
+      barEl.style.width    = data.pct + '%';
+      detailEl.textContent = data.detail || '';
+
+      if (data.error) {
+        barEl.style.background = '#ef4444';
+        clearInterval(_pollInterval);
+        return;
+      }
+
+      if (data.done) {
+        barEl.style.background = '#16a34a';
+        pctEl.style.color      = '#16a34a';
+        clearInterval(_pollInterval);
+      }
+    } catch (e) { /* network blip — keep polling */ }
+  }, 2000);
+}
 
 // ── Signup form ──────────────────────────────────────────────────────────────
 document.getElementById('signupForm').addEventListener('submit', async e => {
@@ -332,6 +394,9 @@ document.getElementById('signupForm').addEventListener('submit', async e => {
     `;
 
     btn.textContent = '✅ Subscribed!';
+    // Start live progress polling
+    const emailVal = formData.get('email');
+    if (emailVal) startProgressPolling(emailVal);
 
   } catch (err) {
     resultEl.className    = 'result error';
@@ -342,6 +407,34 @@ document.getElementById('signupForm').addEventListener('submit', async e => {
     btn.textContent = 'Subscribe & Send First Digest Now';
   }
 });
+
+// ── Reset sent history ───────────────────────────────────────────────────────
+async function resetSent() {
+  const email  = document.getElementById('resetEmail').value.trim();
+  const result = document.getElementById('resetResult');
+  if (!email) { alert('Please enter your email address'); return; }
+
+  result.style.display = 'none';
+  try {
+    const res  = await fetch('/api/reset-sent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    result.style.display = 'block';
+    result.style.background = '#f0fdf4';
+    result.style.color = '#166534';
+    result.textContent = data.message;
+  } catch (err) {
+    result.style.display = 'block';
+    result.style.background = '#fef2f2';
+    result.style.color = '#991b1b';
+    result.textContent = '❌ ' + err.message;
+  }
+}
 
 // ── Send now ─────────────────────────────────────────────────────────────────
 async function sendNow() {
@@ -368,6 +461,8 @@ async function sendNow() {
     result.className     = 'send-now-result ok';
     result.style.display = 'block';
     result.textContent   = '✅ ' + data.message;
+    // Start live progress polling
+    startProgressPolling(email);
   } catch (err) {
     result.className     = 'send-now-result err';
     result.style.display = 'block';

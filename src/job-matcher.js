@@ -12,6 +12,25 @@ function getGemini() {
   return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 }
 
+// ── Gemini call with retry on 503 ─────────────────────────────────────────────
+async function geminiWithRetry(model, prompt, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (err) {
+      const is503 = err.message?.includes('503') || err.message?.includes('overloaded') || err.message?.includes('high demand');
+      const is429 = err.message?.includes('429') || err.message?.includes('quota');
+      if ((is503 || is429) && attempt < maxRetries) {
+        const wait = attempt * 15000; // 15s, 30s
+        console.warn(`  Gemini ${is503 ? '503' : '429'} on attempt ${attempt}/${maxRetries} — retrying in ${wait/1000}s...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // ── Score jobs in batches ────────────────────────────────────────────────────
 async function scoreJobs(profile, jobs) {
   if (jobs.length === 0) return [];
@@ -80,7 +99,7 @@ The "reason" field must be a specific, useful sentence — e.g. "Strong ML PhD m
 Return only the JSON array.`;
 
     try {
-      const result = await model.generateContent(prompt);
+      const result = await geminiWithRetry(model, prompt);
       const text   = result.response.text().trim()
         .replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 

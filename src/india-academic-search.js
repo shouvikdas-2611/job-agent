@@ -33,7 +33,7 @@ function parseRSS(xml) {
 }
 
 const HTTP_OPTS = {
-  timeout: 15000,
+  timeout: 30000,
   headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JobAgent/1.0)' }
 };
 
@@ -232,7 +232,7 @@ async function searchJSearchIndiaAcademic(profile) {
           'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
           'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
         },
-        timeout: 15000
+        timeout: 30000
       });
 
       for (const job of response.data.data || []) {

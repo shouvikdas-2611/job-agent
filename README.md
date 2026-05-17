@@ -2,24 +2,27 @@
 
 Upload your resume once. Get AI-curated, ranked job matches delivered to your inbox — India academic roles first.
 
+> 💡 **First time setting up?** Read `SETUP_NOTES.md` — it captures every error hit during the original installation and exactly how each was fixed.
+
 ---
 
 ## ✨ Features
 
-- **AI Resume Parsing** — Google Gemini reads your resume and extracts skills, experience, seniority, and ideal job titles automatically
-- **Instant digest on signup** — First job email arrives within 2–3 minutes of uploading your resume, no waiting for a scheduled run
-- **"Send me jobs now" button** — Trigger a fresh digest any time directly from the website
-- **Frequency recommendation** — AI suggests the best schedule (daily/weekly/biweekly) based on your profile, with a reason
-- **🇮🇳 India-first priority** — 4-tier search ordered by relevance:
-  1. **India Academic** (PRIMARY) — IITs, IIMs, IISc, NITs, IIITs via FacultyPlus, FacultyTick, direct portals
+- **AI Resume Parsing** — Gemini reads your resume and extracts skills, experience, seniority, and ideal job titles automatically
+- **Frequency recommendation** — AI suggests daily/weekly/biweekly based on your profile type, with a reason
+- **Instant digest on signup** — First job email arrives within 2–5 minutes of uploading your resume
+- **Live progress bar** — See exactly what the agent is doing in real time (searching → scoring → deadline check → sending)
+- **"Send now" button** — Trigger a fresh digest any time from the website
+- **Reset sent history** — Clear the dedup log so all jobs appear fresh again (useful for testing)
+- **🇮🇳 India-first priority** — 4-tier search, each tier independently contributes its top 5:
+  1. **India Academic** — IITs, IIMs, IISc, NITs, IIITs via FacultyPlus, FacultyTick, direct portals
   2. **India Industry** — corporate roles via JSearch + Adzuna
   3. **Abroad Academic** — jobs.ac.uk, EURAXESS, HigherEdJobs
   4. **Abroad Industry** — off by default, opt-in only
-- **Premier institution scraping** — direct scraping of IIT Delhi/Madras/Bombay/Kanpur/Kharagpur/Roorkee/Indore/Gandhinagar/Hyderabad/Guwahati, IISc Bangalore, IIM Ahmedabad/Bangalore/Calcutta
-- **Smart ranking** — Gemini scores each job 0–100 against your profile, weighted by tier
-- **Tier-balanced digests** — up to 6 India-Academic + 4 India-Industry + 3 Abroad-Academic + 2 Abroad-Industry per email
-- **Deduplication** — never see the same job twice across digests
-- **Flexible schedule** — daily, weekly, or bi-weekly at 8 AM IST
+- **Deadline detection** — Extracts application deadlines from job descriptions, flags expired/urgent/open postings with colour-coded badges
+- **Smart ranking** — Gemini scores each job 0–100, with salary and remote-preference penalties
+- **"Why matched" reasoning** — Every job card shows a specific sentence explaining why it was included
+- **Deduplication** — Never see the same job twice across digests
 
 ---
 
@@ -27,27 +30,30 @@ Upload your resume once. Get AI-curated, ranked job matches delivered to your in
 
 | Service | Usage | Cost |
 |---|---|---|
-| Google Gemini API | Resume parsing + job scoring | **Free** (1M tokens/day) |
-| JSearch (RapidAPI) | Job aggregation — Indeed, LinkedIn, Glassdoor | **Free** (150 req/mo) |
+| Google Gemini 2.5 Flash | Resume parsing + job scoring + deadline extraction | **Free** (15 RPM, 1M tokens/day) |
+| JSearch (RapidAPI) | Job aggregation — Indeed, LinkedIn, Glassdoor, ZipRecruiter | **Free** (150 req/mo) |
 | Adzuna | India industry jobs | **Free** (250 req/mo) |
-| FacultyPlus / FacultyTick | India academic RSS feeds | **Free** |
-| IIT/IIM/IISc direct scraping | Premier institution jobs | **Free** |
-| Turso | Cloud database | **Free** (500 MB) |
+| FacultyPlus / FacultyTick | India academic RSS aggregators | **Free** |
+| IIT/IIM/IISc direct scraping | 14 premier institutions | **Free** |
+| Turso | Cloud SQLite database | **Free** (500 MB) |
 | Render | 24/7 hosting | **Free** (750 hrs/mo) |
 | Gmail | Email delivery | **Free** (500/day) |
 | **Total** | | **$0/month** |
 
 ---
 
-## 🔑 API Keys Needed (all free, no credit card)
+## 🔑 API Keys Required (all free)
 
 | Key | Where to get | Time |
 |---|---|---|
-| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) → Get API key | 2 min |
+| `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com) → **"Create API key in new project"** | 2 min |
 | `RAPIDAPI_KEY` | [rapidapi.com/jsearch](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) → Subscribe free | 3 min |
 | `ADZUNA_APP_ID` + `ADZUNA_APP_KEY` | [developer.adzuna.com](https://developer.adzuna.com) → Register | 3 min |
-| `EMAIL_USER` + `EMAIL_PASSWORD` | Your Gmail + [App Password](https://myaccount.google.com/apppasswords) | 3 min |
-| `TURSO_DB_URL` + `TURSO_AUTH_TOKEN` | [turso.tech](https://turso.tech) → Create DB (for deployment) | 2 min |
+| `EMAIL_USER` + `EMAIL_PASSWORD` | Gmail + [App Password](https://myaccount.google.com/apppasswords) (not your real password) | 3 min |
+| `TURSO_DB_URL` + `TURSO_AUTH_TOKEN` | [turso.tech](https://turso.tech) → Create DB → Connect tab | 2 min |
+
+> ⚠️ **Gemini key:** Always use **"Create API key in new project"** — existing projects may have `limit: 0` on the free tier.
+> ⚠️ **Gmail App Password:** Paste the 16 characters **without spaces**. Enable 2FA first or the option won't appear.
 
 ---
 
@@ -58,16 +64,15 @@ Upload your resume once. Get AI-curated, ranked job matches delivered to your in
 cd job-agent
 npm install --ignore-scripts
 ```
-
-> `--ignore-scripts` skips native compilation — all packages are pure JS, no build tools needed.
+> The `--ignore-scripts` flag is required — skips native C++ compilation that fails on some machines.
 
 ### 2. Configure environment
 ```bash
 cp .env.example .env
-# Fill in your API keys
+# Fill in all your API keys
 ```
 
-### 3. Test email works
+### 3. Test email first
 ```bash
 node src/test-email.js your@gmail.com
 ```
@@ -77,27 +82,42 @@ You should receive a sample digest within 30 seconds. Fix `.env` before continui
 ```bash
 npm start
 ```
-Open **http://localhost:3000** — upload your resume and subscribe.
+Open **http://localhost:3000** — upload your resume, fill in the form, and subscribe.
 
 ---
 
 ## 🌐 Deploy to Render (free, 24/7)
 
 ### Prerequisites
-- Code pushed to a GitHub repo (private is fine)
-- Turso database created at [turso.tech](https://turso.tech) — free, takes 2 minutes
+- Code pushed to a GitHub repo
+- Turso database created at [turso.tech](https://turso.tech) (region: Mumbai or Singapore)
 
 ### Steps
-1. Sign up at [render.com](https://render.com) → **New Web Service**
-2. Connect your GitHub repo
-3. Set **Build command**: `npm install --ignore-scripts`
-4. Set **Start command**: `npm start`
-5. Add all environment variables from your `.env` in the Render dashboard
-6. Click **Deploy**
+1. [render.com](https://render.com) → **New Web Service** → connect GitHub repo
+2. **Build command:** `npm install --ignore-scripts`
+3. **Start command:** `npm start`
+4. **Region:** Singapore
+5. **Plan:** Free
+6. Add all 12 environment variables (see `.env.example`)
+7. Click **Create Web Service** — live in ~3 minutes
 
-Your app will be live at `https://your-app-name.onrender.com` within a few minutes, running 24/7.
+### Environment variables to add in Render
+```
+GEMINI_API_KEY          → your AIza... key
+RAPIDAPI_KEY            → your RapidAPI key
+ADZUNA_APP_ID           → your Adzuna App ID
+ADZUNA_APP_KEY          → your Adzuna App Key
+EMAIL_SERVICE           → gmail
+EMAIL_USER              → yourname@gmail.com
+EMAIL_PASSWORD          → your 16-char App Password (no spaces)
+EMAIL_FROM_NAME         → Job Agent
+TURSO_DB_URL            → libsql://jobagent-yourname.turso.io
+TURSO_AUTH_TOKEN        → eyJ... your Turso token
+NODE_ENV                → production
+PORT                    → 3000
+```
 
-> **Why Turso?** Render's free tier resets the filesystem on every redeploy. Turso keeps your subscriptions and sent-job history safe in a persistent cloud database, so nothing is lost when you push new code.
+> **After changing env vars in Render:** push a new commit or click Manual Deploy — Render does not auto-redeploy on env var changes alone.
 
 ---
 
@@ -113,47 +133,37 @@ Your app will be live at `https://your-app-name.onrender.com` within a few minut
 | **IIM Ahmedabad / Bangalore / Calcutta** | Faculty recruitment pages | HTML scraping |
 | **JSearch (India + academic filter)** | Cross-listed university roles on Indeed/LinkedIn India | API |
 
-All sources run in parallel. If some institution pages are slow or down, others still deliver results.
-
-**Field-aware queries:** A PhD in CS at senior level searches `"associate professor computer science"`. An economics postdoc searches `"assistant professor economics"`. Derived automatically from your resume.
-
----
-
-## 🎓 Abroad Academic Sources (Tertiary Tier)
-
-| Source | Coverage |
-|---|---|
-| **jobs.ac.uk** | UK universities — RSS |
-| **EURAXESS** | European research positions — RSS |
-| **HigherEdJobs** | US universities — RSS |
-| **JSearch (academic filter)** | Cross-listed university roles globally |
-
 ---
 
 ## 📧 Email Digest Layout
 
+Each job card shows:
+- **Match score** (0–100%) with colour coding
+- **Why matched** — specific sentence from Gemini explaining the match
+- **Deadline badge** — one of:
+  - 🔴 Deadline passed — 15 May 2026 (closed 3 days ago)
+  - ⚠️ Closes TODAY
+  - 🟠 Closing soon — 3 days left
+  - 🟢 Open — 44 days left
+  - ⚪ No deadline mentioned
+- **Remote badge** if applicable
+- **Salary** if listed
+- Apply button (greyed out with "deadline passed" text if expired)
+
 ```
-🎯 Your Job Matches — 13 curated openings this week
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎓 India — Academic & Faculty (Top Priority)
-   Assistant Professor CS @ IIT Bombay          92% match
-   Associate Professor @ IIM Bangalore          88% match
-   Faculty Position @ IISc Bangalore            85% match
+🎯 Your Job Matches — 14 curated openings this week
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎓 India — Academic & Faculty (Top Priority)  (5 roles)
+   Assistant Professor CS @ IIT Bombay              92%
+   Why matched: Strong ML PhD match, PyTorch stack aligns
+   🟢 Open — 16 June 2026 (30 days left)
+
+💼 India — Industry Roles  (5 roles)
    ...
 
-💼 India — Industry Roles
-   Senior ML Engineer @ Flipkart                82% match
-   ...
-
-🌍 Abroad — Academic & Research
-   Lecturer in CS @ Univ of Bath                75% match
-   ...
-
-🌐 Abroad — Industry Roles   (only shown if opted in)
+🌍 Abroad — Academic & Research  (4 roles)
    ...
 ```
-
-Sections only appear if they have matches. Jobs are ranked by match score within each tier.
 
 ---
 
@@ -161,8 +171,10 @@ Sections only appear if they have matches. Jobs are ranked by match score within
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/subscribe` | Upload resume, create subscription, trigger instant digest |
-| `POST` | `/api/run-now` | Send digest immediately for an email `{ email }` |
+| `POST` | `/api/subscribe` | Upload resume, subscribe, trigger instant digest |
+| `POST` | `/api/run-now` | Send digest immediately `{ email }` |
+| `POST` | `/api/reset-sent` | Clear sent-jobs history `{ email }` — jobs appear fresh again |
+| `GET`  | `/api/progress/:email` | Poll live progress status (step, %, detail, done) |
 | `POST` | `/api/unsubscribe` | Opt out `{ email }` |
 | `GET`  | `/api/subscriptions` | List active subscriptions |
 | `GET`  | `/api/health` | Health check |
@@ -174,22 +186,24 @@ Sections only appear if they have matches. Jobs are ranked by match score within
 ```
 job-agent/
 ├── src/
-│   ├── server.js                # Express server + all routes
-│   ├── database.js              # Turso (libsql) — cloud-persistent SQLite
-│   ├── resume-parser.js         # PDF/DOCX → text → Gemini → structured profile
-│   ├── india-academic-search.js # FacultyPlus, FacultyTick, IIT/IIM/IISc scraping
-│   ├── academic-search.js       # Abroad academic — jobs.ac.uk, EURAXESS, HigherEdJobs
-│   ├── job-search.js            # Main orchestrator — 4-tier priority search
-│   ├── job-matcher.js           # Gemini scoring + tier-balanced picker
-│   ├── email-sender.js          # HTML email with 4 priority sections
-│   ├── scheduler.js             # node-cron jobs + processSubscription
-│   └── test-email.js            # Email config tester
+│   ├── server.js                 Express server + all routes
+│   ├── database.js               Turso (libsql) — auto-falls-back to local SQLite in dev
+│   ├── resume-parser.js          PDF/DOCX → Gemini → profile + frequency recommendation
+│   ├── india-academic-search.js  FacultyPlus, FacultyTick, 14 IIT/IIM/IISc direct pages
+│   ├── academic-search.js        Abroad academic — jobs.ac.uk, EURAXESS, HigherEdJobs
+│   ├── job-search.js             4-tier orchestrator
+│   ├── job-matcher.js            Gemini scoring, top-5-per-tier, salary/remote penalties
+│   ├── deadline-extractor.js     Regex + Gemini deadline detection + status badges
+│   ├── email-sender.js           HTML email with all badges + reasoning
+│   ├── scheduler.js              Cron jobs + live progress tracking
+│   └── test-email.js             Email config tester
 ├── templates/
-│   └── index.html               # Web UI — subscribe + send now + freq recommendation
-├── data/                        # Local SQLite (dev only, gitignored)
-├── .env.example                 # All required keys with instructions
+│   └── index.html                Web UI — subscribe, send-now, reset-sent, progress bar
+├── SETUP_NOTES.md                Installation log — errors faced and fixes applied
+├── README.md                     This file
 ├── package.json
-└── README.md
+├── .env.example                  All key slots with instructions
+└── .gitignore
 ```
 
 ---
@@ -210,18 +224,21 @@ Timezone can be changed in `src/scheduler.js`.
 
 | Problem | Fix |
 |---|---|
-| `Invalid login` on email test | Gmail App Password has spaces — remove them from `EMAIL_PASSWORD` in `.env` |
-| `GEMINI_API_KEY missing` | Add key from [aistudio.google.com](https://aistudio.google.com) to `.env` |
-| `No jobs found` | Broaden location field, check `RAPIDAPI_KEY` is valid |
-| Resume parse failed | Make sure PDF has selectable text — scanned images won't work |
-| Cron not firing on Render | Normal — Render free tier spins down after inactivity. Upgrade to a paid plan or use a cron ping service like [cron-job.org](https://cron-job.org) |
-| Subscriptions lost on Render redeploy | Add `TURSO_DB_URL` and `TURSO_AUTH_TOKEN` to Render env vars |
+| `Cannot find module 'test_email.js'` | Use hyphen: `node src/test-email.js` |
+| `Invalid login` on email test | Gmail App Password has spaces — remove them |
+| `[404] model not found` | Update model name to `gemini-2.5-flash` in `resume-parser.js` and `job-matcher.js` |
+| `[429] limit: 0` | Create a **new** Gemini API key using **"Create API key in new project"** |
+| No matches on second "Send now" | Dedup working correctly — click **Clear history** on website then Send now again |
+| No industry matches — only academic | Should be fixed (top-5-per-tier). If it recurs, check `job-matcher.js` uses `TOP_N_PER_TIER = 5` |
+| Subscriptions lost after Render redeploy | Add `TURSO_DB_URL` and `TURSO_AUTH_TOKEN` to Render env vars |
+| Render not picking up new env vars | Push a new commit or click Manual Deploy in Render dashboard |
+| Cron not firing | Render free tier spins down — use [cron-job.org](https://cron-job.org) to ping your URL every 10 min |
 
 ---
 
 ## ⚠️ LinkedIn Note
 
-LinkedIn does not offer a public Jobs API. JSearch aggregates roles that appear on LinkedIn through data partnerships, so many LinkedIn-listed jobs still appear in digests — just ingested via a different path. Direct LinkedIn scraping violates their Terms of Service and is not included.
+LinkedIn does not offer a public Jobs API. JSearch aggregates roles that appear on LinkedIn through data partnerships — many LinkedIn-listed jobs still appear in digests. Direct LinkedIn scraping violates their ToS and is not included.
 
 ---
 

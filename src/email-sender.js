@@ -8,7 +8,10 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
-  }
+  },
+  connectionTimeout: 30000,  // 30s to establish connection
+  greetingTimeout:   15000,  // 15s for server greeting
+  socketTimeout:     60000   // 60s for socket inactivity
 });
 
 const TIER_META = {

@@ -110,6 +110,15 @@ async function unsubscribe(email) {
   return { changes: res.rowsAffected };
 }
 
+async function resetSentJobs(subscriptionId) {
+  await ready;
+  const res = await client.execute({
+    sql:  'DELETE FROM sent_jobs WHERE subscription_id = ?',
+    args: [subscriptionId]
+  });
+  return { deleted: res.rowsAffected };
+}
+
 async function markJobsSent(subscriptionId, jobIds) {
   await ready;
   for (const jobId of jobIds) {
@@ -136,6 +145,7 @@ module.exports = {
   getActiveSubscriptions,
   getSubscriptionByEmail,
   unsubscribe,
+  resetSentJobs,
   markJobsSent,
   getAlreadySentJobIds,
   updateLastSent

@@ -7,7 +7,7 @@ const fs      = require('fs');
 
 const db = require('./database');
 const { extractTextFromFile, parseResumeWithClaude } = require('./resume-parser');
-const { startScheduler, runForUser, processSubscription } = require('./scheduler');
+const { startScheduler, runForUser, processSubscription, getProgress } = require('./scheduler');
 const { verifyEmailConfig } = require('./email-sender');
 
 const app  = express();
@@ -156,6 +156,34 @@ app.post('/api/run-now', async (req, res) => {
   }
 });
 
+// Reset sent-jobs history — clears dedup log so all jobs appear fresh again
+app.post('/api/reset-sent', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+
+    const sub = await db.getSubscriptionByEmail(email);
+    if (!sub) return res.status(404).json({ error: `No subscription found for ${email}` });
+
+    const result = await db.resetSentJobs(sub.id);
+    console.log(`🔄 Reset sent-jobs for ${email} — deleted ${result.deleted} entries`);
+    res.json({
+      success: true,
+      deleted: result.deleted,
+      message: `✅ Sent history cleared for ${email}. Next digest will show all matching jobs fresh.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Progress polling — frontend calls this every 2s to get live status
+app.get('/api/progress/:email', (req, res) => {
+  const progress = getProgress(decodeURIComponent(req.params.email));
+  if (!progress) return res.json({ active: false });
+  res.json({ active: true, ...progress });
+});
+
 // Unsubscribe
 app.post('/api/unsubscribe', async (req, res) => {
   try {
@@ -211,9 +239,23 @@ async function start() {
     console.log(`\n🚀 Job Agent running on http://localhost:${PORT}`);
     console.log(`   POST /api/subscribe   — upload resume, instant digest fires`);
     console.log(`   POST /api/run-now     — send digest immediately {email}`);
+    console.log(`   POST /api/reset-sent  — clear sent history {email}`);
+    console.log(`   GET  /api/progress/:email — live progress status`);
     console.log(`   POST /api/unsubscribe — opt out {email}`);
     console.log(`   GET  /api/health      — health check`);
   });
+
+  // Keep-alive self-ping every 10 min — prevents Render free tier
+  // from spinning down mid-digest (digests take 3-5 min to complete)
+  if (process.env.RENDER_EXTERNAL_URL) {
+    const axios = require('axios');
+    setInterval(async () => {
+      try {
+        await axios.get(`${process.env.RENDER_EXTERNAL_URL}/api/health`, { timeout: 5000 });
+      } catch (e) { /* ignore — server may be mid-restart */ }
+    }, 10 * 60 * 1000);
+    console.log('🔄 Keep-alive ping enabled (every 10 min)');
+  }
 }
 
 start();

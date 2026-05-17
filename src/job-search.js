@@ -25,7 +25,7 @@ async function searchJSearch(query, location, page = 1) {
         'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       },
-      timeout: 15000
+      timeout: 30000
     });
 
     return (response.data.data || []).map(job => ({
@@ -68,7 +68,7 @@ async function searchAdzuna(query, location, country = 'in') {
           max_days_old: 7,
           sort_by: 'date'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
 

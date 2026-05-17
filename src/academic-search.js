@@ -32,7 +32,7 @@ function parseRSS(xml) {
 async function searchJobsAcUk(query) {
   try {
     const url = `https://www.jobs.ac.uk/search/?keywords=${encodeURIComponent(query)}&format=rss`;
-    const response = await axios.get(url, { timeout: 15000, headers: { 'User-Agent': 'JobAgent/1.0' } });
+    const response = await axios.get(url, { timeout: 30000, headers: { 'User-Agent': 'JobAgent/1.0' } });
     const items = parseRSS(response.data);
 
     return items.slice(0, 25).map(item => ({
@@ -56,28 +56,39 @@ async function searchJobsAcUk(query) {
 
 // ============ EURAXESS (European research jobs) ============
 async function searchEuraxess(query) {
-  try {
-    const url = `https://euraxess.ec.europa.eu/jobs/search/rss?keywords=${encodeURIComponent(query)}`;
-    const response = await axios.get(url, { timeout: 15000, headers: { 'User-Agent': 'JobAgent/1.0' } });
-    const items = parseRSS(response.data);
+  // Try multiple URL formats — EURAXESS changes their RSS endpoints periodically
+  const urls = [
+    `https://euraxess.ec.europa.eu/jobs/search/rss?keywords=${encodeURIComponent(query)}`,
+    `https://euraxess.ec.europa.eu/jobs/search?keywords=${encodeURIComponent(query)}&format=rss`,
+    `https://euraxess.ec.europa.eu/jobs?keywords=${encodeURIComponent(query)}&format=rss`
+  ];
 
-    return items.slice(0, 25).map(item => ({
-      id: `euraxess_${Buffer.from(item.link).toString('base64').slice(0, 24)}`,
-      title: item.title,
-      company: extractEmployer(item.title, item.description) || 'European Research Institution',
-      location: extractLocation(item.description) || 'Europe',
-      description: item.description.slice(0, 1500),
-      url: item.link,
-      posted_at: item.pubDate,
-      salary: null,
-      source: 'EURAXESS',
-      remote: false,
-      job_category: 'academic'
-    }));
-  } catch (err) {
-    console.error('EURAXESS error:', err.message);
-    return [];
+  for (const url of urls) {
+    try {
+      const response = await axios.get(url, { timeout: 30000, headers: { 'User-Agent': 'JobAgent/1.0' } });
+      if (response.status !== 200) continue;
+      const items = parseRSS(response.data);
+      if (items.length === 0) continue;
+
+      return items.slice(0, 25).map(item => ({
+        id: `euraxess_${Buffer.from(item.link).toString('base64').slice(0, 24)}`,
+        title: item.title,
+        company: extractEmployer(item.title, item.description) || 'European Research Institution',
+        location: extractLocation(item.description) || 'Europe',
+        description: item.description.slice(0, 1500),
+        url: item.link,
+        posted_at: item.pubDate,
+        salary: null,
+        source: 'EURAXESS',
+        remote: false,
+        job_category: 'academic'
+      }));
+    } catch (err) {
+      // Try next URL silently
+    }
   }
+  console.error('EURAXESS: all URLs failed — skipping this source');
+  return [];
 }
 
 // ============ HigherEdJobs RSS (US universities) ============
@@ -85,7 +96,7 @@ async function searchHigherEdJobs(query) {
   try {
     // HigherEdJobs provides category-based RSS; we use the general faculty feed
     const url = `https://www.higheredjobs.com/rss/articleFeed.cfm?categoryID=1`;
-    const response = await axios.get(url, { timeout: 15000, headers: { 'User-Agent': 'JobAgent/1.0' } });
+    const response = await axios.get(url, { timeout: 30000, headers: { 'User-Agent': 'JobAgent/1.0' } });
     const items = parseRSS(response.data);
     const queryLower = query.toLowerCase();
 
@@ -135,7 +146,7 @@ async function searchAcademicViaJSearch(title, location) {
         'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       },
-      timeout: 15000
+      timeout: 30000
     });
 
     return (response.data.data || [])
