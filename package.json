@@ -1,0 +1,26 @@
+{
+  "name": "job-agent",
+  "version": "1.0.0",
+  "description": "AI-powered job matching agent with scheduled email digests",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test-email": "node src/test-email.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@libsql/client": "^0.17.3",
+    "axios": "^1.16.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "mammoth": "^1.12.0",
+    "multer": "^2.0.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
+    "pdf-parse": "^1.1.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

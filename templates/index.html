@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Agent — AI Job Digests for Academia & Industry</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      color: #1e293b;
+    }
+
+    .page { max-width: 580px; margin: 0 auto; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { font-size: 26px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
+    .header p  { font-size: 14px; color: #64748b; }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 600; color: #1e293b;
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Form elements */
+    label { display: block; font-size: 13px; font-weight: 500; color: #475569; margin-bottom: 5px; }
+    input, select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid #cbd5e1; border-radius: 8px;
+      font-size: 14px; color: #1e293b; background: #fff;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { margin-bottom: 14px; }
+
+    /* File drop */
+    .file-drop {
+      border: 2px dashed #cbd5e1; border-radius: 10px;
+      padding: 22px 16px; text-align: center; cursor: pointer;
+      transition: all 0.15s; margin-bottom: 14px;
+    }
+    .file-drop:hover, .file-drop.over { border-color: #7c3aed; background: #faf5ff; }
+    .file-drop input { display: none; }
+    .file-drop-icon { font-size: 28px; margin-bottom: 6px; }
+    .file-drop-text { font-size: 13px; color: #64748b; }
+    .file-drop-name { font-size: 13px; color: #7c3aed; font-weight: 500; margin-top: 4px; }
+
+    /* Category checkboxes */
+    .cat-list { display: flex; flex-direction: column; gap: 6px; }
+    .cat-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 10px; border-radius: 8px; border: 1px solid #e2e8f0;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .cat-row:hover { background: #f8fafc; }
+    .cat-row input[type=checkbox] { width: 15px; height: 15px; margin-top: 2px; accent-color: #7c3aed; flex-shrink: 0; }
+    .cat-label strong { font-size: 13px; color: #1e293b; display: block; }
+    .cat-label span   { font-size: 12px; color: #94a3b8; }
+    .cat-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 99px; margin-left: 4px; vertical-align: middle; }
+    .badge-primary { background: #ede9fe; color: #6d28d9; }
+    .badge-off     { background: #f1f5f9; color: #94a3b8; }
+
+    /* Buttons */
+    .btn {
+      width: 100%; padding: 12px; border: none; border-radius: 9px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
+    .btn-teal    { background: linear-gradient(135deg, #0f766e, #0891b2); color: #fff; }
+
+    /* Result panels */
+    .result { border-radius: 10px; padding: 16px; margin-top: 14px; display: none; }
+    .result.success { background: #f0fdf4; border: 1px solid #86efac; }
+    .result.error   { background: #fef2f2; border: 1px solid #fca5a5; }
+    .result-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    .result.success .result-title { color: #166534; }
+    .result.error   .result-title { color: #991b1b; }
+
+    /* Profile card */
+    .profile-card { background: #faf5ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px; margin-top: 12px; }
+    .profile-name  { font-size: 15px; font-weight: 600; color: #4c1d95; }
+    .profile-title { font-size: 13px; color: #6d28d9; margin-bottom: 8px; }
+    .skill-tags    { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+    .skill-tag     { background: #ede9fe; color: #5b21b6; padding: 2px 9px; border-radius: 99px; font-size: 12px; }
+
+    /* Frequency recommendation */
+    .freq-rec {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px;
+      padding: 12px 14px; margin-top: 10px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .freq-rec-badge {
+      background: #2563eb; color: #fff; border-radius: 6px;
+      padding: 3px 10px; font-size: 12px; font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .freq-rec-text { font-size: 13px; color: #1e40af; line-height: 1.5; }
+
+    /* Send-now card */
+    .send-now-form { display: flex; gap: 8px; }
+    .send-now-form input { flex: 1; margin: 0; }
+    .send-now-btn {
+      padding: 9px 18px; background: #0f766e; color: #fff;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
+      cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
+    }
+    .send-now-btn:hover { opacity: 0.85; }
+    .send-now-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .send-now-result { font-size: 13px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; display: none; }
+    .send-now-result.ok  { background: #f0fdf4; color: #166534; }
+    .send-now-result.err { background: #fef2f2; color: #991b1b; }
+
+    .note { font-size: 12px; color: #94a3b8; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>🎯 Job Agent</h1>
+    <p>Upload your resume once. Get AI-curated faculty & industry jobs in your inbox.</p>
+  </div>
+
+  <!-- ── Subscribe card ───────────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">📄 Subscribe to job digests</div>
+
+    <form id="signupForm">
+
+      <!-- File upload -->
+      <label class="file-drop" id="fileDrop" for="resumeFile">
+        <div class="file-drop-icon">📎</div>
+        <div class="file-drop-text">Click to upload resume <strong>PDF / DOCX / TXT</strong></div>
+        <div class="file-drop-name" id="fileName"></div>
+        <input type="file" id="resumeFile" name="resume" accept=".pdf,.docx,.txt" required>
+      </label>
+
+      <!-- Name + Email -->
+      <div class="row">
+        <div class="field">
+          <label>Your name</label>
+          <input type="text" name="name" placeholder="Dr. Arjun Mehta">
+        </div>
+        <div class="field">
+          <label>Email *</label>
+          <input type="email" name="email" placeholder="you@gmail.com" required>
+        </div>
+      </div>
+
+      <!-- Frequency + Location -->
+      <div class="row">
+        <div class="field">
+          <label>Frequency *</label>
+          <select name="frequency" id="freqSelect" required>
+            <option value="weekly">Weekly — Mon 8 AM IST</option>
+            <option value="daily">Daily — 8 AM IST</option>
+            <option value="biweekly">Bi-weekly — 1st &amp; 15th</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Preferred location</label>
+          <input type="text" name="location" placeholder="Bangalore / Remote">
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="field">
+        <label>Job categories to search</label>
+        <div class="cat-list">
+          <label class="cat-row">
+            <input type="checkbox" name="cat_india_academic" checked>
+            <div class="cat-label">
+              <strong>🎓 India — Academic & Faculty <span class="cat-badge badge-primary">Primary</span></strong>
+              <span>IITs, IIMs, IISc, NITs via FacultyPlus, direct portals</span>
+            </div>
+          </label>
+          <label class="cat-row">
+            <input type="checkbox" name="cat_india_industry" checked>
+            <div class="cat-label">
+              <strong>💼 India — Industry</strong>
+              <span>Corporate roles via JSearch + Adzuna</span>
+            </div>
+          </label>
+          <label class="cat-row">
+            <input type="checkbox" name="cat_abroad_academic" checked>
+            <div class="cat-label">
+              <strong>🌍 Abroad — Academic & Research</strong>
+              <span>jobs.ac.uk, EURAXESS, HigherEdJobs</span>
+            </div>
+          </label>
+          <label class="cat-row">
+            <input type="checkbox" name="cat_abroad_industry">
+            <div class="cat-label">
+              <strong>🌐 Abroad — Industry <span class="cat-badge badge-off">Off by default</span></strong>
+              <span>International corporate (enable only if relocating)</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn" style="margin-top:6px">
+        Subscribe &amp; Send First Digest Now
+      </button>
+      <p class="note" style="text-align:center;margin-top:8px">
+        ✉️ Your first job digest will arrive in your inbox within 2–3 minutes
+      </p>
+    </form>
+
+    <!-- Success / error result -->
+    <div class="result" id="signupResult">
+      <div class="result-title" id="signupResultTitle"></div>
+      <div id="signupResultBody"></div>
+    </div>
+  </div>
+
+  <!-- ── Send now card ─────────────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">⚡ Already subscribed? Send jobs to your inbox right now</div>
+    <div class="send-now-form">
+      <input type="email" id="sendNowEmail" placeholder="your@email.com">
+      <button class="send-now-btn" id="sendNowBtn" onclick="sendNow()">Send now</button>
+    </div>
+    <div class="send-now-result" id="sendNowResult"></div>
+    <p class="note">Searches all sources and emails your latest matches immediately — no waiting for the next scheduled digest.</p>
+  </div>
+
+</div>
+
+<script>
+// ── File drop ────────────────────────────────────────────────────────────────
+const fileInput = document.getElementById('resumeFile');
+const fileName  = document.getElementById('fileName');
+const fileDrop  = document.getElementById('fileDrop');
+
+fileInput.addEventListener('change', e => {
+  fileName.textContent = e.target.files[0]?.name || '';
+});
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('over'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('over'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault(); fileDrop.classList.remove('over');
+  if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; fileName.textContent = e.dataTransfer.files[0].name; }
+});
+
+// ── Signup form ──────────────────────────────────────────────────────────────
+document.getElementById('signupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Parsing resume & searching jobs…';
+
+  const resultEl    = document.getElementById('signupResult');
+  const resultTitle = document.getElementById('signupResultTitle');
+  const resultBody  = document.getElementById('signupResultBody');
+  resultEl.style.display = 'none';
+
+  try {
+    const formData = new FormData(e.target);
+    const res  = await fetch('/api/subscribe', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Subscription failed');
+
+    resultEl.className    = 'result success';
+    resultEl.style.display = 'block';
+    resultTitle.textContent = '✅ ' + data.message;
+
+    const p   = data.profile;
+    const rec = data.frequency_recommendation;
+
+    // Auto-select recommended frequency
+    if (rec?.frequency) document.getElementById('freqSelect').value = rec.frequency;
+
+    resultBody.innerHTML = `
+      <div class="profile-card">
+        <div class="profile-name">${p.name || 'Your profile'}</div>
+        <div class="profile-title">${p.current_title} · ${p.years_experience} yrs · ${p.seniority_level}</div>
+        ${p.academic_suitable ? `<div style="font-size:12px;color:#7c3aed;margin-bottom:6px;">🎓 Academic profile detected — faculty roles prioritised</div>` : ''}
+        <div class="skill-tags">
+          ${(p.top_skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('')}
+        </div>
+      </div>
+      ${rec ? `
+      <div class="freq-rec">
+        <div class="freq-rec-badge">${rec.frequency.charAt(0).toUpperCase() + rec.frequency.slice(1)} recommended</div>
+        <div class="freq-rec-text">${rec.reason}</div>
+      </div>` : ''}
+    `;
+
+    btn.textContent = '✅ Subscribed!';
+
+  } catch (err) {
+    resultEl.className    = 'result error';
+    resultEl.style.display = 'block';
+    resultTitle.textContent = '❌ ' + err.message;
+    resultBody.innerHTML = '';
+    btn.disabled = false;
+    btn.textContent = 'Subscribe & Send First Digest Now';
+  }
+});
+
+// ── Send now ─────────────────────────────────────────────────────────────────
+async function sendNow() {
+  const email   = document.getElementById('sendNowEmail').value.trim();
+  const btn     = document.getElementById('sendNowBtn');
+  const result  = document.getElementById('sendNowResult');
+
+  if (!email) { alert('Please enter your email address'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  result.style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/run-now', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    result.className     = 'send-now-result ok';
+    result.style.display = 'block';
+    result.textContent   = '✅ ' + data.message;
+  } catch (err) {
+    result.className     = 'send-now-result err';
+    result.style.display = 'block';
+    result.textContent   = '❌ ' + err.message;
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Send now';
+  }
+}
+</script>
+</body>
+</html>
