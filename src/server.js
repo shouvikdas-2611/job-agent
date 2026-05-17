@@ -38,7 +38,8 @@ app.post('/api/subscribe', upload.single('resume'), async (req, res) => {
   try {
     const {
       email, name, frequency, location, jobType,
-      cat_india_academic, cat_india_industry, cat_abroad_academic, cat_abroad_industry
+      cat_india_academic, cat_india_industry, cat_abroad_academic, cat_abroad_industry,
+      min_salary, salary_currency, remote_preference
     } = req.body;
 
     // Validate
@@ -73,6 +74,11 @@ app.post('/api/subscribe', upload.single('resume'), async (req, res) => {
     } else {
       profile.search_categories = profile.search_categories || ['india_academic', 'india_industry', 'abroad_academic'];
     }
+
+    // Attach salary + remote preferences to profile so matcher uses them
+    if (min_salary)         profile.min_salary        = parseInt(min_salary);
+    if (salary_currency)    profile.salary_currency   = salary_currency;
+    if (remote_preference)  profile.remote_preference = remote_preference;
 
     console.log(`✅ Parsed: ${profile.name || email} | categories: ${profile.search_categories.join(', ')}`);
 

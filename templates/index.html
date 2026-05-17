@@ -182,6 +182,31 @@
         </div>
       </div>
 
+      <!-- Salary + Remote preference -->
+      <div class="row">
+        <div class="field">
+          <label>Minimum salary (optional)</label>
+          <div style="display:flex;gap:6px;">
+            <input type="number" name="min_salary" placeholder="e.g. 1500000" style="flex:1;">
+            <select name="salary_currency" style="width:80px;">
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Per year. Jobs below this get scored lower.</div>
+        </div>
+        <div class="field">
+          <label>Work mode preference</label>
+          <select name="remote_preference">
+            <option value="both">Both remote &amp; onsite</option>
+            <option value="remote">Remote only</option>
+            <option value="onsite">Onsite only</option>
+          </select>
+        </div>
+      </div>
+
       <!-- Categories -->
       <div class="field">
         <label>Job categories to search</label>

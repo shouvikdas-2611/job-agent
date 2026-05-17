@@ -4,9 +4,10 @@
 
 const cron = require('node-cron');
 const db   = require('./database');
-const { searchJobs }      = require('./job-search');
+const { searchJobs }             = require('./job-search');
 const { scoreJobs, pickBalanced } = require('./job-matcher');
-const { sendJobDigest }   = require('./email-sender');
+const { extractDeadlines }       = require('./deadline-extractor');
+const { sendJobDigest }          = require('./email-sender');
 
 async function processSubscription(sub) {
   console.log(`\n[${new Date().toISOString()}] Processing ${sub.email} (${sub.frequency})`);
@@ -37,8 +38,14 @@ async function processSubscription(sub) {
 
     if (ranked.length === 0) return { sent: false, reason: 'no jobs scored ≥50' };
 
-    // 4. Send email
-    await sendJobDigest(sub.email, sub.name, ranked, sub.frequency);
+    // 4. Extract deadlines — enriches each job with deadline_status, deadline_label, deadline_str
+    const enriched = await extractDeadlines(ranked);
+    const expiredCount = enriched.filter(j => j.deadline_status === 'expired').length;
+    const urgentCount  = enriched.filter(j => j.deadline_status === 'urgent' || j.deadline_status === 'today').length;
+    console.log(`  → Deadlines — expired: ${expiredCount}, urgent (≤7 days): ${urgentCount}, unknown: ${enriched.filter(j=>j.deadline_status==='unknown').length}`);
+
+    // 5. Send email
+    await sendJobDigest(sub.email, sub.name, enriched, sub.frequency);
     console.log(`  → ✅ Email sent to ${sub.email}`);
 
     // 5. Mark sent + update timestamp

@@ -13,7 +13,7 @@ function getGemini() {
     throw new Error('GEMINI_API_KEY is missing. Get a free key at https://aistudio.google.com');
   }
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 }
 
 // ── File text extraction ─────────────────────────────────────────────────────
