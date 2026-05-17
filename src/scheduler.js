@@ -81,9 +81,7 @@ async function processSubscription(sub) {
     }
     setProgress(email, 'Ranking', `Top ${ranked.length} matches selected (🇮🇳 Acad: ${counts.india_academic}, 🇮🇳 Ind: ${counts.india_industry}, 🌍 Acad: ${counts.abroad_academic})`, 68);
 
-    // Step 4 — Extract deadlines (non-fatal — email still sends if this fails)
-    // Small gap after scoring to avoid hitting Gemini 20 RPM rate limit
-    await new Promise(r => setTimeout(r, 10000));
+    // Step 4 — Extract deadlines (regex only — zero Gemini calls, instant)
     setProgress(email, 'Checking deadlines', `Verifying application deadlines for ${ranked.length} jobs...`, 72);
     let enriched = ranked;
     try {
