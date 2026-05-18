@@ -12,13 +12,15 @@ function createTransporter() {
       host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false,
+      requireTLS: true,           // Brevo requires STARTTLS on 587
       auth: {
         user: process.env.BREVO_SMTP_LOGIN || process.env.EMAIL_USER,
         pass: process.env.BREVO_SMTP_KEY
       },
       connectionTimeout: 30000,
       greetingTimeout:   15000,
-      socketTimeout:     60000
+      socketTimeout:     60000,
+      tls: { rejectUnauthorized: false }
     });
   }
 
@@ -39,6 +41,14 @@ function createTransporter() {
 }
 
 const transporter = createTransporter();
+
+// Log which email transport is active — critical for debugging Render
+if (process.env.BREVO_SMTP_KEY) {
+  console.log('📧 Email transport: Brevo SMTP relay (smtp-relay.brevo.com:587)');
+} else {
+  console.log('⚠️  Email transport: Gmail direct SMTP — THIS WILL FAIL ON RENDER.');
+  console.log('   Set BREVO_SMTP_KEY and BREVO_SMTP_LOGIN env vars to fix.');
+}
 
 const TIER_META = {
   india_academic:  { emoji: '🎓', label: 'India — Academic & Faculty (Top Priority)',  color: '#7c3aed' },
@@ -222,13 +232,30 @@ async function sendJobDigest(toEmail, name, jobs, frequency) {
     html: buildHtmlEmail(name, jobs, frequency)
   };
 
-  const info = await transporter.sendMail(mailOptions);
-  return { messageId: info.messageId };
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`  ✉️  Email accepted by SMTP server — messageId: ${info.messageId}`);
+    return { messageId: info.messageId };
+  } catch (err) {
+    // Detailed diagnostics for connection issues
+    console.error(`  ✗ SMTP send failed:`);
+    console.error(`    code: ${err.code || 'unknown'}`);
+    console.error(`    command: ${err.command || 'unknown'}`);
+    console.error(`    message: ${err.message}`);
+    if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKET' || err.code === 'ECONNECTION') {
+      console.error(`    → This is a network/firewall block. If BREVO is not active, set BREVO_SMTP_KEY.`);
+      console.error(`    → Active transport: ${process.env.BREVO_SMTP_KEY ? 'Brevo' : 'Gmail (BLOCKED on Render)'}`);
+    }
+    throw err;
+  }
 }
 
 async function verifyEmailConfig() {
   return new Promise((resolve) => {
-    transporter.verify((err) => resolve(!err));
+    transporter.verify((err) => {
+      if (err) console.error(`  ✗ Email verify failed: ${err.message}`);
+      resolve(!err);
+    });
   });
 }
 
