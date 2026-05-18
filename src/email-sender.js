@@ -1,30 +1,18 @@
 // src/email-sender.js
-// Sends formatted job digest emails with 4 priority-tiered sections
+// Sends formatted job digest emails with 4 priority-tiered sections.
+//
+// Uses Brevo HTTP API (https://api.brevo.com/v3/smtp/email) on port 443.
+// Render free tier blocks ALL outbound SMTP ports (25/465/587) — so SMTP
+// (nodemailer) cannot work there. The HTTP API uses port 443 which is never
+// blocked. Falls back to Gmail SMTP via nodemailer only for local dev.
 
+const axios      = require('axios');
 const nodemailer = require('nodemailer');
 
-// Email transporter — uses Brevo SMTP relay by default (works from Render/cloud)
-// Falls back to Gmail direct SMTP for local dev if BREVO_SMTP_KEY is not set
-function createTransporter() {
-  if (process.env.BREVO_SMTP_KEY) {
-    // Brevo (formerly Sendinblue) — free 300 emails/day, works from all cloud hosts
-    return nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,           // Brevo requires STARTTLS on 587
-      auth: {
-        user: process.env.BREVO_SMTP_LOGIN || process.env.EMAIL_USER,
-        pass: process.env.BREVO_SMTP_KEY
-      },
-      connectionTimeout: 30000,
-      greetingTimeout:   15000,
-      socketTimeout:     60000,
-      tls: { rejectUnauthorized: false }
-    });
-  }
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
-  // Local dev fallback — Gmail direct SMTP (may not work from cloud hosts)
+// Local-dev-only Gmail transporter (used when BREVO_API_KEY is not set)
+function createGmailTransporter() {
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
@@ -40,14 +28,13 @@ function createTransporter() {
   });
 }
 
-const transporter = createTransporter();
-
-// Log which email transport is active — critical for debugging Render
-if (process.env.BREVO_SMTP_KEY) {
-  console.log('📧 Email transport: Brevo SMTP relay (smtp-relay.brevo.com:587)');
+// Log which transport is active at startup
+if (process.env.BREVO_API_KEY) {
+  console.log('📧 Email transport: Brevo HTTP API (port 443 — works on Render)');
+} else if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+  console.log('📧 Email transport: Gmail SMTP (local dev only — will fail on Render)');
 } else {
-  console.log('⚠️  Email transport: Gmail direct SMTP — THIS WILL FAIL ON RENDER.');
-  console.log('   Set BREVO_SMTP_KEY and BREVO_SMTP_LOGIN env vars to fix.');
+  console.log('⚠️  No email transport configured. Set BREVO_API_KEY for production.');
 }
 
 const TIER_META = {
@@ -225,38 +212,92 @@ async function sendJobDigest(toEmail, name, jobs, frequency) {
     return { skipped: true };
   }
 
-  const mailOptions = {
-    from: `"${process.env.EMAIL_FROM_NAME || 'Job Agent'}" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: `🎯 ${jobs.length} new job matches for you (${frequency})`,
-    html: buildHtmlEmail(name, jobs, frequency)
-  };
+  const subject  = `🎯 ${jobs.length} new job matches for you (${frequency})`;
+  const htmlBody = buildHtmlEmail(name, jobs, frequency);
+  const fromName = process.env.EMAIL_FROM_NAME || 'Job Agent';
+  const fromAddr = process.env.EMAIL_USER;
 
+  // ── Production: Brevo HTTP API (port 443 — never blocked by Render) ────────
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const response = await axios.post(
+        BREVO_API_URL,
+        {
+          sender:      { name: fromName, email: fromAddr },
+          to:          [{ email: toEmail, name: name || toEmail }],
+          subject:     subject,
+          htmlContent: htmlBody
+        },
+        {
+          headers: {
+            'api-key':      process.env.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+            'Accept':       'application/json'
+          },
+          timeout: 30000
+        }
+      );
+      console.log(`  ✉️  Email sent via Brevo API — messageId: ${response.data?.messageId || 'ok'}`);
+      return { messageId: response.data?.messageId || 'sent' };
+    } catch (err) {
+      const status = err.response?.status;
+      const body   = err.response?.data;
+      console.error(`  ✗ Brevo API send failed:`);
+      console.error(`    status: ${status || 'no response'}`);
+      console.error(`    detail: ${JSON.stringify(body || err.message)}`);
+      if (status === 401) {
+        console.error(`    → Invalid BREVO_API_KEY. Generate a v3 API key at Brevo → SMTP & API → API Keys tab.`);
+      } else if (status === 400) {
+        console.error(`    → Check that sender email (${fromAddr}) is a verified sender in Brevo.`);
+      }
+      throw new Error(`Brevo API error: ${status} ${JSON.stringify(body || err.message)}`);
+    }
+  }
+
+  // ── Local dev fallback: Gmail SMTP ────────────────────────────────────────
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`  ✉️  Email accepted by SMTP server — messageId: ${info.messageId}`);
+    const transporter = createGmailTransporter();
+    const info = await transporter.sendMail({
+      from:    `"${fromName}" <${fromAddr}>`,
+      to:      toEmail,
+      subject: subject,
+      html:    htmlBody
+    });
+    console.log(`  ✉️  Email sent via Gmail SMTP — messageId: ${info.messageId}`);
     return { messageId: info.messageId };
   } catch (err) {
-    // Detailed diagnostics for connection issues
-    console.error(`  ✗ SMTP send failed:`);
-    console.error(`    code: ${err.code || 'unknown'}`);
-    console.error(`    command: ${err.command || 'unknown'}`);
-    console.error(`    message: ${err.message}`);
-    if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKET' || err.code === 'ECONNECTION') {
-      console.error(`    → This is a network/firewall block. If BREVO is not active, set BREVO_SMTP_KEY.`);
-      console.error(`    → Active transport: ${process.env.BREVO_SMTP_KEY ? 'Brevo' : 'Gmail (BLOCKED on Render)'}`);
-    }
+    console.error(`  ✗ Gmail SMTP send failed: ${err.code} ${err.message}`);
+    console.error(`    → For production, set BREVO_API_KEY (Gmail SMTP is blocked on Render).`);
     throw err;
   }
 }
 
 async function verifyEmailConfig() {
-  return new Promise((resolve) => {
-    transporter.verify((err) => {
-      if (err) console.error(`  ✗ Email verify failed: ${err.message}`);
-      resolve(!err);
+  // Brevo HTTP API — verify by checking the account endpoint
+  if (process.env.BREVO_API_KEY) {
+    try {
+      await axios.get('https://api.brevo.com/v3/account', {
+        headers: { 'api-key': process.env.BREVO_API_KEY, 'Accept': 'application/json' },
+        timeout: 10000
+      });
+      return true;
+    } catch (err) {
+      console.error(`  ✗ Brevo API key check failed: ${err.response?.status || err.message}`);
+      return false;
+    }
+  }
+
+  // Gmail SMTP fallback verification
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+    return new Promise((resolve) => {
+      createGmailTransporter().verify((err) => {
+        if (err) console.error(`  ✗ Gmail SMTP verify failed: ${err.message}`);
+        resolve(!err);
+      });
     });
-  });
+  }
+
+  return false;
 }
 
 module.exports = { sendJobDigest, verifyEmailConfig };
