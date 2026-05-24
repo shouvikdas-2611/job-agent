@@ -56,6 +56,14 @@ async function scoreJobs(profile, jobs) {
     ? `Min salary: ${profile.min_salary} ${profile.salary_currency || 'INR'}/yr` : '';
   const remotePref = profile.remote_preference
     ? `Work mode: ${profile.remote_preference}` : '';
+  const sectorPref = profile.sector_interests?.length
+    ? `Interested sectors: ${profile.sector_interests.join(', ')}` : '';
+  const rolePref   = profile.role_types?.length
+    ? `Preferred role types: ${profile.role_types.join(', ')}` : '';
+  const stagePref  = profile.career_stage
+    ? `Career stage: ${profile.career_stage}` : '';
+  const relocPref  = profile.relocation
+    ? `Relocation: ${profile.relocation}` : '';
 
   const prompt = `Expert recruiter scoring ${jobs.length} jobs for this candidate. Score each 0-100.
 
@@ -64,7 +72,7 @@ Title: ${profile.current_title} | ${profile.years_experience}yrs | ${profile.sen
 Skills: ${(profile.skills || []).slice(0, 8).join(', ')}
 Tech: ${(profile.key_technologies || []).slice(0, 6).join(', ')}
 Education: ${profile.education_level || 'unknown'} | Academic: ${profile.academic_suitable ? 'YES (PhD/research)' : 'No'} | Field: ${profile.academic_field || 'N/A'}
-${salaryPref}${remotePref ? ' | ' + remotePref : ''}
+${[salaryPref, remotePref, sectorPref, rolePref, stagePref, relocPref].filter(Boolean).join(' | ')}
 
 JOBS (category: india_academic/india_industry/abroad_academic/abroad_industry):
 ${JSON.stringify(jobsForPrompt)}
@@ -78,7 +86,10 @@ Academic roles: weight PhD+field+seniority heavily
 Industry roles: weight tech stack+experience heavily
 Deduct 15pts: salary clearly below expectation
 Deduct 10pts: remote mismatch
-reason=SPECIFIC (e.g. "ML PhD aligns, PyTorch match, IIT role ideal")
+Boost 10pts: job sector matches candidate's sector_interests
+Boost 10pts: job role type matches candidate's preferred role types
+Deduct 10pts: role type explicitly not in preferred list (if list provided)
+reason=SPECIFIC (e.g. "ML PhD aligns, PyTorch match, AI sector preference fits")
 
 Return only the JSON array.`;
 

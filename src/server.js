@@ -39,7 +39,9 @@ app.post('/api/subscribe', upload.single('resume'), async (req, res) => {
     const {
       email, name, frequency, location, jobType,
       cat_india_academic, cat_india_industry, cat_abroad_academic, cat_abroad_industry,
-      min_salary, salary_currency, remote_preference
+      min_salary, salary_currency, remote_preference,
+      career_stage, relocation, visa_status,
+      sector_interests, role_types
     } = req.body;
 
     // Validate
@@ -75,10 +77,15 @@ app.post('/api/subscribe', upload.single('resume'), async (req, res) => {
       profile.search_categories = profile.search_categories || ['india_academic', 'india_industry', 'abroad_academic'];
     }
 
-    // Attach salary + remote preferences to profile so matcher uses them
+    // Attach all preference fields to profile
     if (min_salary)         profile.min_salary        = parseInt(min_salary);
     if (salary_currency)    profile.salary_currency   = salary_currency;
     if (remote_preference)  profile.remote_preference = remote_preference;
+    if (career_stage)       profile.career_stage      = career_stage;
+    if (relocation)         profile.relocation        = relocation;
+    if (visa_status)        profile.visa_status       = visa_status;
+    if (sector_interests)   profile.sector_interests  = sector_interests.split(',').filter(Boolean);
+    if (role_types)         profile.role_types        = role_types.split(',').filter(Boolean);
 
     console.log(`✅ Parsed: ${profile.name || email} | categories: ${profile.search_categories.join(', ')}`);
 
@@ -152,6 +159,64 @@ app.post('/api/run-now', async (req, res) => {
     });
 
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update profile — replace resume + profile, clear sent history, keep subscription
+app.post('/api/update-profile', upload.single('resume'), async (req, res) => {
+  try {
+    const { email, frequency, location } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    if (!req.file) return res.status(400).json({ error: 'Resume file required' });
+
+    const sub = await db.getSubscriptionByEmail(email);
+    if (!sub) return res.status(404).json({ error: `No subscription found for ${email}. Please subscribe first.` });
+
+    console.log(`🔄 Updating profile for ${email}`);
+
+    // Parse new resume
+    const resumeText = await extractTextFromFile(req.file.path, req.file.mimetype);
+    if (resumeText.length < 100) return res.status(400).json({ error: 'Resume too short or unreadable.' });
+
+    const profile = await parseResumeWithClaude(resumeText);
+
+    // Carry over existing preferences unless new ones provided
+    const merged = {
+      ...sub.profile,   // keep old preferences (sectors, roles, etc.)
+      ...profile,       // override with newly parsed data
+    };
+    if (frequency && ['daily','weekly','biweekly'].includes(frequency)) merged.frequency = frequency;
+
+    // Update subscription
+    await db.createSubscription({
+      email,
+      name:       sub.name,
+      frequency:  frequency || sub.frequency,
+      profile:    merged,
+      resumeText,
+      location:   location || sub.location,
+      jobType:    sub.job_type
+    });
+
+    // Clear sent history so next digest is fresh
+    await db.resetSentJobs(sub.id);
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      success: true,
+      message: `Profile updated for ${email}. Sent history cleared — next digest will be a fresh search with your new resume.`,
+      profile: {
+        name:          merged.name,
+        current_title: merged.current_title,
+        top_skills:    (merged.skills || []).slice(0, 8)
+      }
+    });
+
+  } catch (err) {
+    console.error('Update profile error:', err);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: err.message });
   }
 });

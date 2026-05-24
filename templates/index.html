@@ -6,88 +6,65 @@
   <title>Job Agent — AI Job Digests for Academia & Industry</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; min-height: 100vh; padding: 24px 16px 48px; color: #1e293b; }
+    .page { max-width: 620px; margin: 0 auto; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f1f5f9;
-      min-height: 100vh;
-      padding: 24px 16px 48px;
-      color: #1e293b;
-    }
-
-    .page { max-width: 580px; margin: 0 auto; }
-
-    /* Header */
     .header { text-align: center; margin-bottom: 28px; }
     .header h1 { font-size: 26px; font-weight: 600; color: #1e293b; margin-bottom: 6px; }
     .header p  { font-size: 14px; color: #64748b; }
 
-    /* Cards */
-    .card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 24px;
-      margin-bottom: 16px;
-    }
-    .card-title {
-      font-size: 15px; font-weight: 600; color: #1e293b;
-      margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
-    }
+    /* Tab nav */
+    .tabs { display: flex; gap: 4px; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 9px; border: none; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; color: #64748b; transition: all 0.15s; }
+    .tab-btn.active { background: #fff; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-    /* Form elements */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .section-label { font-size: 12px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 10px; }
+    .section-label:first-child { margin-top: 0; }
+
     label { display: block; font-size: 13px; font-weight: 500; color: #475569; margin-bottom: 5px; }
-    input, select {
-      width: 100%; padding: 9px 12px;
-      border: 1px solid #cbd5e1; border-radius: 8px;
-      font-size: 14px; color: #1e293b; background: #fff;
-      transition: border-color 0.15s;
-    }
+    input, select { width: 100%; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #1e293b; background: #fff; transition: border-color 0.15s; }
     input:focus, select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.08); }
-
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .field { margin-bottom: 14px; }
 
     /* File drop */
-    .file-drop {
-      border: 2px dashed #cbd5e1; border-radius: 10px;
-      padding: 22px 16px; text-align: center; cursor: pointer;
-      transition: all 0.15s; margin-bottom: 14px;
-    }
+    .file-drop { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 22px 16px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 14px; }
     .file-drop:hover, .file-drop.over { border-color: #7c3aed; background: #faf5ff; }
     .file-drop input { display: none; }
     .file-drop-icon { font-size: 28px; margin-bottom: 6px; }
     .file-drop-text { font-size: 13px; color: #64748b; }
     .file-drop-name { font-size: 13px; color: #7c3aed; font-weight: 500; margin-top: 4px; }
 
+    /* Chip selector */
+    .chip-group { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 99px; border: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s; color: #475569; background: #fff; user-select: none; }
+    .chip:hover { border-color: #7c3aed; color: #7c3aed; background: #faf5ff; }
+    .chip.selected { border-color: #7c3aed; background: #ede9fe; color: #6d28d9; }
+    .chip.selected::before { content: '✓ '; font-size: 11px; }
+
     /* Category checkboxes */
     .cat-list { display: flex; flex-direction: column; gap: 6px; }
-    .cat-row {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 9px 10px; border-radius: 8px; border: 1px solid #e2e8f0;
-      cursor: pointer; transition: background 0.1s;
-    }
+    .cat-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: background 0.1s; }
     .cat-row:hover { background: #f8fafc; }
     .cat-row input[type=checkbox] { width: 15px; height: 15px; margin-top: 2px; accent-color: #7c3aed; flex-shrink: 0; }
     .cat-label strong { font-size: 13px; color: #1e293b; display: block; }
     .cat-label span   { font-size: 12px; color: #94a3b8; }
     .cat-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 99px; margin-left: 4px; vertical-align: middle; }
     .badge-primary { background: #ede9fe; color: #6d28d9; }
-    .badge-off     { background: #f1f5f9; color: #94a3b8; }
+    .badge-off { background: #f1f5f9; color: #94a3b8; }
 
-    /* Buttons */
-    .btn {
-      width: 100%; padding: 12px; border: none; border-radius: 9px;
-      font-size: 15px; font-weight: 600; cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-    }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
     .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-    .btn:active:not(:disabled) { transform: translateY(0); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-primary { background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; }
     .btn-teal    { background: linear-gradient(135deg, #0f766e, #0891b2); color: #fff; }
+    .btn-orange  { background: linear-gradient(135deg, #d97706, #dc2626); color: #fff; }
 
-    /* Result panels */
     .result { border-radius: 10px; padding: 16px; margin-top: 14px; display: none; }
     .result.success { background: #f0fdf4; border: 1px solid #86efac; }
     .result.error   { background: #fef2f2; border: 1px solid #fca5a5; }
@@ -95,40 +72,36 @@
     .result.success .result-title { color: #166534; }
     .result.error   .result-title { color: #991b1b; }
 
-    /* Profile card */
     .profile-card { background: #faf5ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px; margin-top: 12px; }
     .profile-name  { font-size: 15px; font-weight: 600; color: #4c1d95; }
     .profile-title { font-size: 13px; color: #6d28d9; margin-bottom: 8px; }
     .skill-tags    { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
     .skill-tag     { background: #ede9fe; color: #5b21b6; padding: 2px 9px; border-radius: 99px; font-size: 12px; }
-
-    /* Frequency recommendation */
-    .freq-rec {
-      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px;
-      padding: 12px 14px; margin-top: 10px;
-      display: flex; align-items: flex-start; gap: 10px;
-    }
-    .freq-rec-badge {
-      background: #2563eb; color: #fff; border-radius: 6px;
-      padding: 3px 10px; font-size: 12px; font-weight: 600;
-      white-space: nowrap; flex-shrink: 0;
-    }
+    .freq-rec { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 12px 14px; margin-top: 10px; display: flex; align-items: flex-start; gap: 10px; }
+    .freq-rec-badge { background: #2563eb; color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
     .freq-rec-text { font-size: 13px; color: #1e40af; line-height: 1.5; }
 
-    /* Send-now card */
-    .send-now-form { display: flex; gap: 8px; }
-    .send-now-form input { flex: 1; margin: 0; }
-    .send-now-btn {
-      padding: 9px 18px; background: #0f766e; color: #fff;
-      border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
-      cursor: pointer; white-space: nowrap; transition: opacity 0.15s;
-    }
-    .send-now-btn:hover { opacity: 0.85; }
-    .send-now-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .send-now-result { font-size: 13px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; display: none; }
-    .send-now-result.ok  { background: #f0fdf4; color: #166534; }
-    .send-now-result.err { background: #fef2f2; color: #991b1b; }
+    /* Progress */
+    #progressTracker { display: none; margin-top: 16px; }
+    .prog-header { display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 5px; }
+    .prog-bar-bg { background: #f1f5f9; border-radius: 99px; height: 8px; overflow: hidden; margin-bottom: 8px; }
+    .prog-bar { height: 100%; background: linear-gradient(90deg,#7c3aed,#2563eb); border-radius: 99px; width: 0%; transition: width 0.5s ease; }
+    .prog-detail { font-size: 12px; color: #64748b; line-height: 1.5; min-height: 18px; }
 
+    /* Quick action card */
+    .action-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .action-row input { flex: 1; margin: 0; }
+    .action-btn { padding: 9px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; color: #fff; }
+    .action-btn:hover { opacity: 0.85; }
+    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .action-btn-teal   { background: #0f766e; }
+    .action-btn-purple { background: #7c3aed; }
+    .action-btn-red    { background: #dc2626; }
+    .action-result { font-size: 13px; margin-top: 8px; padding: 8px 12px; border-radius: 8px; display: none; }
+    .ar-ok  { background: #f0fdf4; color: #166534; }
+    .ar-err { background: #fef2f2; color: #991b1b; }
+
+    .divider { border: none; border-top: 1px dashed #e2e8f0; margin: 16px 0; }
     .note { font-size: 12px; color: #94a3b8; margin-top: 6px; }
   </style>
 </head>
@@ -140,49 +113,48 @@
     <p>Upload your resume once. Get AI-curated faculty & industry jobs in your inbox.</p>
   </div>
 
-  <!-- ── Subscribe card ───────────────────────────────────────────────── -->
+  <!-- Tab nav -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('subscribe')">📄 Subscribe</button>
+    <button class="tab-btn" onclick="switchTab('manage')">⚙️ Manage</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1 — SUBSCRIBE                                             -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div id="tab-subscribe" class="tab-panel active">
   <div class="card">
     <div class="card-title">📄 Subscribe to job digests</div>
-
     <form id="signupForm">
 
       <!-- File upload -->
       <label class="file-drop" id="fileDrop" for="resumeFile">
         <div class="file-drop-icon">📎</div>
-        <div class="file-drop-text">Click to upload resume <strong>PDF / DOCX / TXT</strong></div>
+        <div class="file-drop-text">Click or drag to upload resume <strong>PDF / DOCX / TXT</strong></div>
         <div class="file-drop-name" id="fileName"></div>
         <input type="file" id="resumeFile" name="resume" accept=".pdf,.docx,.txt" required>
       </label>
 
       <!-- Name + Email -->
       <div class="row">
-        <div class="field">
-          <label>Your name</label>
-          <input type="text" name="name" placeholder="Dr. Arjun Mehta">
-        </div>
-        <div class="field">
-          <label>Email *</label>
-          <input type="email" name="email" placeholder="you@gmail.com" required>
-        </div>
+        <div class="field"><label>Your name</label><input type="text" name="name" placeholder="Dr. Arjun Mehta"></div>
+        <div class="field"><label>Email *</label><input type="email" name="email" placeholder="you@gmail.com" required></div>
       </div>
 
       <!-- Frequency + Location -->
       <div class="row">
         <div class="field">
-          <label>Frequency *</label>
+          <label>Digest frequency *</label>
           <select name="frequency" id="freqSelect" required>
             <option value="weekly">Weekly — Mon 8 AM IST</option>
             <option value="daily">Daily — 8 AM IST</option>
             <option value="biweekly">Bi-weekly — 1st &amp; 15th</option>
           </select>
         </div>
-        <div class="field">
-          <label>Preferred location</label>
-          <input type="text" name="location" placeholder="Bangalore / Remote">
-        </div>
+        <div class="field"><label>Preferred location</label><input type="text" name="location" placeholder="Bangalore / Remote / Any"></div>
       </div>
 
-      <!-- Salary + Remote preference -->
+      <!-- Salary + Remote -->
       <div class="row">
         <div class="field">
           <label>Minimum salary (optional)</label>
@@ -195,10 +167,10 @@
               <option value="EUR">EUR</option>
             </select>
           </div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">Per year. Jobs below this get scored lower.</div>
+          <div class="note">Per year. Jobs below this get scored lower.</div>
         </div>
         <div class="field">
-          <label>Work mode preference</label>
+          <label>Work mode</label>
           <select name="remote_preference">
             <option value="both">Both remote &amp; onsite</option>
             <option value="remote">Remote only</option>
@@ -207,100 +179,249 @@
         </div>
       </div>
 
-      <!-- Categories -->
-      <div class="field">
-        <label>Job categories to search</label>
-        <div class="cat-list">
-          <label class="cat-row">
-            <input type="checkbox" name="cat_india_academic" checked>
-            <div class="cat-label">
-              <strong>🎓 India — Academic & Faculty <span class="cat-badge badge-primary">Primary</span></strong>
-              <span>IITs, IIMs, IISc, NITs via FacultyPlus, direct portals</span>
-            </div>
-          </label>
-          <label class="cat-row">
-            <input type="checkbox" name="cat_india_industry" checked>
-            <div class="cat-label">
-              <strong>💼 India — Industry</strong>
-              <span>Corporate roles via JSearch + Adzuna</span>
-            </div>
-          </label>
-          <label class="cat-row">
-            <input type="checkbox" name="cat_abroad_academic" checked>
-            <div class="cat-label">
-              <strong>🌍 Abroad — Academic & Research</strong>
-              <span>jobs.ac.uk, EURAXESS, HigherEdJobs</span>
-            </div>
-          </label>
-          <label class="cat-row">
-            <input type="checkbox" name="cat_abroad_industry">
-            <div class="cat-label">
-              <strong>🌐 Abroad — Industry <span class="cat-badge badge-off">Off by default</span></strong>
-              <span>International corporate (enable only if relocating)</span>
-            </div>
-          </label>
+      <!-- Career stage + Relocation -->
+      <div class="row">
+        <div class="field">
+          <label>Career stage</label>
+          <select name="career_stage">
+            <option value="">— select —</option>
+            <option value="phd_student">PhD Student</option>
+            <option value="postdoc">Postdoc / Research Fellow</option>
+            <option value="early">Early career (0–3 yrs)</option>
+            <option value="mid">Mid career (4–8 yrs)</option>
+            <option value="senior">Senior (8–15 yrs)</option>
+            <option value="principal">Principal / Staff / Associate Prof</option>
+            <option value="director">Director / Full Professor level</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Relocation</label>
+          <select name="relocation">
+            <option value="open">Open to relocation</option>
+            <option value="india_only">Within India only</option>
+            <option value="no">Not willing to relocate</option>
+          </select>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary" id="submitBtn" style="margin-top:6px">
+      <!-- Visa -->
+      <div class="field">
+        <label>Work authorisation (for international jobs)</label>
+        <select name="visa_status">
+          <option value="citizen_oci">Indian Citizen / OCI — no sponsorship needed</option>
+          <option value="need_sponsorship">Need visa sponsorship</option>
+          <option value="h1b">H1B eligible (US)</option>
+          <option value="india_only">India only — not considering abroad</option>
+        </select>
+      </div>
+
+      <!-- ── SECTOR INTERESTS ────────────────────────────────────── -->
+      <div class="section-label">🏭 Sector interests <span style="font-weight:400;color:#94a3b8;">(select all that apply)</span></div>
+      <div class="chip-group" id="chips-sectors">
+        <span class="chip" data-group="sectors" data-value="ai_ml">AI / ML</span>
+        <span class="chip" data-group="sectors" data-value="data_science">Data Science</span>
+        <span class="chip" data-group="sectors" data-value="nlp">NLP / Language AI</span>
+        <span class="chip" data-group="sectors" data-value="computer_vision">Computer Vision</span>
+        <span class="chip" data-group="sectors" data-value="robotics">Robotics</span>
+        <span class="chip" data-group="sectors" data-value="semiconductor">Semiconductors / VLSI</span>
+        <span class="chip" data-group="sectors" data-value="cybersecurity">Cybersecurity</span>
+        <span class="chip" data-group="sectors" data-value="cloud_infra">Cloud / Infrastructure</span>
+        <span class="chip" data-group="sectors" data-value="fintech">Fintech / Banking</span>
+        <span class="chip" data-group="sectors" data-value="healthtech">Healthtech / Medtech</span>
+        <span class="chip" data-group="sectors" data-value="biotech">Biotech / Pharma</span>
+        <span class="chip" data-group="sectors" data-value="edtech">Edtech</span>
+        <span class="chip" data-group="sectors" data-value="manufacturing">Manufacturing / Industry 4.0</span>
+        <span class="chip" data-group="sectors" data-value="automotive">Automotive / EV</span>
+        <span class="chip" data-group="sectors" data-value="aerospace">Aerospace / Defence</span>
+        <span class="chip" data-group="sectors" data-value="energy">Energy / Clean Tech</span>
+        <span class="chip" data-group="sectors" data-value="climate">Climate / Sustainability</span>
+        <span class="chip" data-group="sectors" data-value="space">Space / Satellite</span>
+        <span class="chip" data-group="sectors" data-value="consulting">Consulting / Strategy</span>
+        <span class="chip" data-group="sectors" data-value="govt_policy">Govt / Public Policy</span>
+        <span class="chip" data-group="sectors" data-value="research_lab">Research Labs (ISRO/DRDO/CSIR)</span>
+        <span class="chip" data-group="sectors" data-value="startup">Startups / Deep Tech</span>
+        <span class="chip" data-group="sectors" data-value="social_impact">Social Impact / NGO</span>
+      </div>
+      <input type="hidden" name="sector_interests" id="input-sectors">
+
+      <!-- ── ROLE TYPE ───────────────────────────────────────────── -->
+      <div class="section-label">👤 Role types <span style="font-weight:400;color:#94a3b8;">(select all that apply)</span></div>
+      <div class="chip-group" id="chips-roles">
+        <span class="chip" data-group="roles" data-value="faculty">Faculty / Professor</span>
+        <span class="chip" data-group="roles" data-value="postdoc">Postdoc / Research Fellow</span>
+        <span class="chip" data-group="roles" data-value="research_scientist">Research Scientist</span>
+        <span class="chip" data-group="roles" data-value="research_engineer">Research Engineer</span>
+        <span class="chip" data-group="roles" data-value="ml_engineer">ML / AI Engineer</span>
+        <span class="chip" data-group="roles" data-value="data_scientist">Data Scientist</span>
+        <span class="chip" data-group="roles" data-value="software_engineer">Software Engineer</span>
+        <span class="chip" data-group="roles" data-value="data_engineer">Data Engineer</span>
+        <span class="chip" data-group="roles" data-value="product_manager">Product Manager</span>
+        <span class="chip" data-group="roles" data-value="consultant">Consultant / Advisor</span>
+        <span class="chip" data-group="roles" data-value="analyst">Analyst / Business Analyst</span>
+        <span class="chip" data-group="roles" data-value="engineering_manager">Engineering Manager</span>
+        <span class="chip" data-group="roles" data-value="tech_lead">Tech Lead / Principal Engineer</span>
+        <span class="chip" data-group="roles" data-value="cto">CTO / VP Engineering</span>
+        <span class="chip" data-group="roles" data-value="entrepreneur">Entrepreneur / Co-founder</span>
+      </div>
+      <input type="hidden" name="role_types" id="input-roles">
+
+      <!-- ── SEARCH CATEGORIES ──────────────────────────────────── -->
+      <div class="section-label">🔍 Job categories to search</div>
+      <div class="cat-list">
+        <label class="cat-row">
+          <input type="checkbox" name="cat_india_academic" checked>
+          <div class="cat-label">
+            <strong>🎓 India — Academic &amp; Faculty <span class="cat-badge badge-primary">Primary</span></strong>
+            <span>IITs, IIMs, IISc, NITs via FacultyPlus, direct portals</span>
+          </div>
+        </label>
+        <label class="cat-row">
+          <input type="checkbox" name="cat_india_industry" checked>
+          <div class="cat-label">
+            <strong>💼 India — Industry</strong>
+            <span>Corporate roles via JSearch + Adzuna</span>
+          </div>
+        </label>
+        <label class="cat-row">
+          <input type="checkbox" name="cat_abroad_academic" checked>
+          <div class="cat-label">
+            <strong>🌍 Abroad — Academic &amp; Research</strong>
+            <span>jobs.ac.uk, EURAXESS, HigherEdJobs</span>
+          </div>
+        </label>
+        <label class="cat-row">
+          <input type="checkbox" name="cat_abroad_industry">
+          <div class="cat-label">
+            <strong>🌐 Abroad — Industry <span class="cat-badge badge-off">Off by default</span></strong>
+            <span>International corporate (enable only if relocating abroad)</span>
+          </div>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn" style="margin-top:18px;">
         Subscribe &amp; Send First Digest Now
       </button>
-      <p class="note" style="text-align:center;margin-top:8px">
-        ✉️ Your first job digest will arrive in your inbox within 2–3 minutes
-      </p>
+      <p class="note" style="text-align:center;margin-top:8px;">✉️ First digest arrives in 2–5 minutes</p>
     </form>
 
-    <!-- Live progress tracker -->
-    <div id="progressTracker" style="display:none;margin-top:16px;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:5px;">
-        <span id="progressStep" style="font-weight:500;">Starting...</span>
-        <span id="progressPct" style="font-weight:600;color:#7c3aed;">0%</span>
-      </div>
-      <div style="background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden;margin-bottom:8px;">
-        <div id="progressBar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:99px;width:0%;transition:width 0.5s ease;"></div>
-      </div>
-      <div id="progressDetail" style="font-size:12px;color:#64748b;line-height:1.5;min-height:18px;"></div>
-    </div>
-
-    <!-- Success / error result -->
     <div class="result" id="signupResult">
       <div class="result-title" id="signupResultTitle"></div>
       <div id="signupResultBody"></div>
     </div>
-  </div>
 
-  <!-- ── Send now card ─────────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="card-title">⚡ Already subscribed? Send jobs to your inbox right now</div>
-    <div class="send-now-form">
-      <input type="email" id="sendNowEmail" placeholder="your@email.com">
-      <button class="send-now-btn" id="sendNowBtn" onclick="sendNow()">Send now</button>
-    </div>
-    <div class="send-now-result" id="sendNowResult"></div>
-    <p class="note">Searches all sources and emails your latest matches immediately — no waiting for the next scheduled digest.</p>
-
-    <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0;">
-      <div style="font-size:13px;font-weight:500;color:#475569;margin-bottom:6px;">🔄 Seen all jobs already? Reset history</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input type="email" id="resetEmail" placeholder="your@email.com" style="flex:1;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;">
-        <button onclick="resetSent()" style="padding:8px 14px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;">Clear history</button>
+    <!-- Progress bar -->
+    <div id="progressTracker">
+      <div class="prog-header">
+        <span id="progressStep" style="font-weight:500;">Starting...</span>
+        <span id="progressPct" style="font-weight:600;color:#7c3aed;">0%</span>
       </div>
-      <div id="resetResult" style="font-size:12px;margin-top:6px;display:none;padding:6px 10px;border-radius:6px;"></div>
-      <p class="note" style="margin-top:5px;">Clears the "already sent" log — next digest shows all matching jobs fresh. Use after testing or for a full re-scan.</p>
+      <div class="prog-bar-bg"><div class="prog-bar" id="progressBar"></div></div>
+      <div class="prog-detail" id="progressDetail"></div>
     </div>
   </div>
+  </div>
 
-</div>
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2 — MANAGE                                                -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div id="tab-manage" class="tab-panel">
+
+    <!-- Send now -->
+    <div class="card">
+      <div class="card-title">⚡ Send digest now</div>
+      <div class="action-row">
+        <input type="email" id="sendNowEmail" placeholder="your@email.com">
+        <button class="action-btn action-btn-teal" onclick="sendNow()">Send now</button>
+      </div>
+      <div class="action-result" id="sendNowResult"></div>
+      <p class="note">Searches all sources and emails latest matches immediately.</p>
+    </div>
+
+    <!-- Update profile -->
+    <div class="card">
+      <div class="card-title">🔄 Update profile &amp; resume</div>
+      <p style="font-size:13px;color:#64748b;margin-bottom:14px;">Upload a new resume to replace your current profile. Sent history is cleared automatically so your next digest is a fresh search.</p>
+
+      <div class="field"><label>Email *</label><input type="email" id="updateEmail" placeholder="your@email.com" required></div>
+
+      <label class="file-drop" id="updateFileDrop" for="updateResumeFile">
+        <div class="file-drop-icon">📎</div>
+        <div class="file-drop-text">Upload new resume <strong>PDF / DOCX / TXT</strong></div>
+        <div class="file-drop-name" id="updateFileName"></div>
+        <input type="file" id="updateResumeFile" accept=".pdf,.docx,.txt">
+      </label>
+
+      <div class="row">
+        <div class="field">
+          <label>New frequency (optional)</label>
+          <select id="updateFrequency">
+            <option value="">— keep current —</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>New location (optional)</label>
+          <input type="text" id="updateLocation" placeholder="Bangalore / Remote">
+        </div>
+      </div>
+
+      <button class="btn btn-orange" onclick="updateProfile()" id="updateBtn">Update Profile &amp; Clear History</button>
+      <div class="action-result" id="updateResult" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Reset history -->
+    <div class="card">
+      <div class="card-title">🗑️ Reset sent history</div>
+      <div class="action-row">
+        <input type="email" id="resetEmail" placeholder="your@email.com">
+        <button class="action-btn action-btn-purple" onclick="resetSent()">Clear history</button>
+      </div>
+      <div class="action-result" id="resetResult"></div>
+      <p class="note">Clears the "already sent" log. Next digest shows all matching jobs fresh.</p>
+    </div>
+
+    <!-- Unsubscribe -->
+    <div class="card">
+      <div class="card-title">🚫 Unsubscribe</div>
+      <div class="action-row">
+        <input type="email" id="unsubEmail" placeholder="your@email.com">
+        <button class="action-btn action-btn-red" onclick="unsubscribe()">Unsubscribe</button>
+      </div>
+      <div class="action-result" id="unsubResult"></div>
+      <p class="note">Stops all future digests. Your profile and history are removed.</p>
+    </div>
+
+  </div><!-- end tab-manage -->
+
+</div><!-- end page -->
 
 <script>
-// ── File drop ────────────────────────────────────────────────────────────────
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Chip selector ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.classList.toggle('selected');
+    const group  = chip.dataset.group;
+    const values = [...document.querySelectorAll(`.chip[data-group="${group}"].selected`)]
+                    .map(c => c.dataset.value);
+    document.getElementById('input-' + group).value = values.join(',');
+  });
+});
+
+// ── File drop — subscribe form ────────────────────────────────────────────────
 const fileInput = document.getElementById('resumeFile');
 const fileName  = document.getElementById('fileName');
 const fileDrop  = document.getElementById('fileDrop');
-
-fileInput.addEventListener('change', e => {
-  fileName.textContent = e.target.files[0]?.name || '';
-});
+fileInput.addEventListener('change', e => { fileName.textContent = e.target.files[0]?.name || ''; });
 fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('over'); });
 fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('over'));
 fileDrop.addEventListener('drop', e => {
@@ -308,47 +429,44 @@ fileDrop.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) { fileInput.files = e.dataTransfer.files; fileName.textContent = e.dataTransfer.files[0].name; }
 });
 
-// ── Progress polling ─────────────────────────────────────────────────────────
-let _pollInterval = null;
+// ── File drop — update form ───────────────────────────────────────────────────
+const updateFileInput = document.getElementById('updateResumeFile');
+const updateFileName  = document.getElementById('updateFileName');
+const updateFileDrop  = document.getElementById('updateFileDrop');
+updateFileInput.addEventListener('change', e => { updateFileName.textContent = e.target.files[0]?.name || ''; });
+updateFileDrop.addEventListener('dragover', e => { e.preventDefault(); updateFileDrop.classList.add('over'); });
+updateFileDrop.addEventListener('dragleave', () => updateFileDrop.classList.remove('over'));
+updateFileDrop.addEventListener('drop', e => {
+  e.preventDefault(); updateFileDrop.classList.remove('over');
+  if (e.dataTransfer.files[0]) { updateFileInput.files = e.dataTransfer.files; updateFileName.textContent = e.dataTransfer.files[0].name; }
+});
 
+// ── Progress polling ──────────────────────────────────────────────────────────
+let _pollInterval = null;
 function startProgressPolling(email) {
   const tracker  = document.getElementById('progressTracker');
   const stepEl   = document.getElementById('progressStep');
   const pctEl    = document.getElementById('progressPct');
   const barEl    = document.getElementById('progressBar');
   const detailEl = document.getElementById('progressDetail');
-
   tracker.style.display = 'block';
   if (_pollInterval) clearInterval(_pollInterval);
-
   _pollInterval = setInterval(async () => {
     try {
       const res  = await fetch(`/api/progress/${encodeURIComponent(email)}`);
       const data = await res.json();
-
-      if (!data.active) return; // not started yet or cleared
-
+      if (!data.active) return;
       stepEl.textContent   = data.step   || '';
       pctEl.textContent    = data.pct + '%';
       barEl.style.width    = data.pct + '%';
       detailEl.textContent = data.detail || '';
-
-      if (data.error) {
-        barEl.style.background = '#ef4444';
-        clearInterval(_pollInterval);
-        return;
-      }
-
-      if (data.done) {
-        barEl.style.background = '#16a34a';
-        pctEl.style.color      = '#16a34a';
-        clearInterval(_pollInterval);
-      }
-    } catch (e) { /* network blip — keep polling */ }
+      if (data.error) { barEl.style.background = '#ef4444'; clearInterval(_pollInterval); return; }
+      if (data.done)  { barEl.style.background = '#16a34a'; pctEl.style.color = '#16a34a'; clearInterval(_pollInterval); }
+    } catch (e) { /* network blip */ }
   }, 2000);
 }
 
-// ── Signup form ──────────────────────────────────────────────────────────────
+// ── Subscribe form ────────────────────────────────────────────────────────────
 document.getElementById('signupForm').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('submitBtn');
@@ -364,42 +482,32 @@ document.getElementById('signupForm').addEventListener('submit', async e => {
     const formData = new FormData(e.target);
     const res  = await fetch('/api/subscribe', { method: 'POST', body: formData });
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.error || 'Subscription failed');
 
-    resultEl.className    = 'result success';
+    resultEl.className     = 'result success';
     resultEl.style.display = 'block';
     resultTitle.textContent = '✅ ' + data.message;
 
     const p   = data.profile;
     const rec = data.frequency_recommendation;
-
-    // Auto-select recommended frequency
     if (rec?.frequency) document.getElementById('freqSelect').value = rec.frequency;
 
     resultBody.innerHTML = `
       <div class="profile-card">
         <div class="profile-name">${p.name || 'Your profile'}</div>
         <div class="profile-title">${p.current_title} · ${p.years_experience} yrs · ${p.seniority_level}</div>
-        ${p.academic_suitable ? `<div style="font-size:12px;color:#7c3aed;margin-bottom:6px;">🎓 Academic profile detected — faculty roles prioritised</div>` : ''}
-        <div class="skill-tags">
-          ${(p.top_skills || []).map(s => `<span class="skill-tag">${s}</span>`).join('')}
-        </div>
+        ${p.academic_suitable ? `<div style="font-size:12px;color:#7c3aed;margin-bottom:6px;">🎓 Academic profile detected</div>` : ''}
+        <div class="skill-tags">${(p.top_skills||[]).map(s=>`<span class="skill-tag">${s}</span>`).join('')}</div>
       </div>
-      ${rec ? `
-      <div class="freq-rec">
-        <div class="freq-rec-badge">${rec.frequency.charAt(0).toUpperCase() + rec.frequency.slice(1)} recommended</div>
-        <div class="freq-rec-text">${rec.reason}</div>
-      </div>` : ''}
+      ${rec ? `<div class="freq-rec"><div class="freq-rec-badge">${rec.frequency} recommended</div><div class="freq-rec-text">${rec.reason}</div></div>` : ''}
     `;
 
     btn.textContent = '✅ Subscribed!';
-    // Start live progress polling
     const emailVal = formData.get('email');
     if (emailVal) startProgressPolling(emailVal);
 
   } catch (err) {
-    resultEl.className    = 'result error';
+    resultEl.className     = 'result error';
     resultEl.style.display = 'block';
     resultTitle.textContent = '❌ ' + err.message;
     resultBody.innerHTML = '';
@@ -408,68 +516,86 @@ document.getElementById('signupForm').addEventListener('submit', async e => {
   }
 });
 
-// ── Reset sent history ───────────────────────────────────────────────────────
+// ── Send now ──────────────────────────────────────────────────────────────────
+async function sendNow() {
+  const email  = document.getElementById('sendNowEmail').value.trim();
+  const result = document.getElementById('sendNowResult');
+  if (!email) { alert('Please enter your email address'); return; }
+  result.style.display = 'none';
+  try {
+    const res  = await fetch('/api/run-now', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    result.className = 'action-result ar-ok'; result.style.display = 'block'; result.textContent = '✅ ' + data.message;
+    startProgressPolling(email);
+  } catch (err) {
+    result.className = 'action-result ar-err'; result.style.display = 'block'; result.textContent = '❌ ' + err.message;
+  }
+}
+
+// ── Update profile ────────────────────────────────────────────────────────────
+async function updateProfile() {
+  const email  = document.getElementById('updateEmail').value.trim();
+  const file   = document.getElementById('updateResumeFile').files[0];
+  const result = document.getElementById('updateResult');
+  const btn    = document.getElementById('updateBtn');
+  if (!email) { alert('Please enter your email address'); return; }
+  if (!file)  { alert('Please upload a new resume file'); return; }
+
+  btn.disabled = true; btn.textContent = '⏳ Updating profile…';
+  result.style.display = 'none';
+
+  try {
+    const formData = new FormData();
+    formData.append('email',     email);
+    formData.append('resume',    file);
+    formData.append('frequency', document.getElementById('updateFrequency').value);
+    formData.append('location',  document.getElementById('updateLocation').value);
+
+    const res  = await fetch('/api/update-profile', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Update failed');
+
+    result.className = 'action-result ar-ok'; result.style.display = 'block';
+    result.textContent = '✅ ' + data.message;
+    btn.textContent = '✅ Updated!';
+  } catch (err) {
+    result.className = 'action-result ar-err'; result.style.display = 'block';
+    result.textContent = '❌ ' + err.message;
+    btn.disabled = false; btn.textContent = 'Update Profile & Clear History';
+  }
+}
+
+// ── Reset sent history ────────────────────────────────────────────────────────
 async function resetSent() {
   const email  = document.getElementById('resetEmail').value.trim();
   const result = document.getElementById('resetResult');
   if (!email) { alert('Please enter your email address'); return; }
-
   result.style.display = 'none';
   try {
-    const res  = await fetch('/api/reset-sent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
+    const res  = await fetch('/api/reset-sent', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
-
-    result.style.display = 'block';
-    result.style.background = '#f0fdf4';
-    result.style.color = '#166534';
-    result.textContent = data.message;
+    result.className = 'action-result ar-ok'; result.style.display = 'block'; result.textContent = '✅ ' + data.message;
   } catch (err) {
-    result.style.display = 'block';
-    result.style.background = '#fef2f2';
-    result.style.color = '#991b1b';
-    result.textContent = '❌ ' + err.message;
+    result.className = 'action-result ar-err'; result.style.display = 'block'; result.textContent = '❌ ' + err.message;
   }
 }
 
-// ── Send now ─────────────────────────────────────────────────────────────────
-async function sendNow() {
-  const email   = document.getElementById('sendNowEmail').value.trim();
-  const btn     = document.getElementById('sendNowBtn');
-  const result  = document.getElementById('sendNowResult');
-
+// ── Unsubscribe ───────────────────────────────────────────────────────────────
+async function unsubscribe() {
+  const email  = document.getElementById('unsubEmail').value.trim();
+  const result = document.getElementById('unsubResult');
   if (!email) { alert('Please enter your email address'); return; }
-
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
+  if (!confirm(`Unsubscribe ${email}? This stops all future digests.`)) return;
   result.style.display = 'none';
-
   try {
-    const res  = await fetch('/api/run-now', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
+    const res  = await fetch('/api/unsubscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.error || 'Failed');
-
-    result.className     = 'send-now-result ok';
-    result.style.display = 'block';
-    result.textContent   = '✅ ' + data.message;
-    // Start live progress polling
-    startProgressPolling(email);
+    result.className = 'action-result ar-ok'; result.style.display = 'block'; result.textContent = '✅ ' + data.message;
   } catch (err) {
-    result.className     = 'send-now-result err';
-    result.style.display = 'block';
-    result.textContent   = '❌ ' + err.message;
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = 'Send now';
+    result.className = 'action-result ar-err'; result.style.display = 'block'; result.textContent = '❌ ' + err.message;
   }
 }
 </script>
